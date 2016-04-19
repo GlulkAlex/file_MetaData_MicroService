@@ -105,7 +105,12 @@
     <form
         action="upload/"
         method="post"
+        enctype="multipart/form-data"
     >
+      <!-- No characters are encoded.
+      This value is required when
+      you are using forms
+      that have a file upload control -->
       <input type="file" name="upload_File">
       <br>
       <input type="submit" value="Submit">
