@@ -93,7 +93,28 @@ storage engines:
 `MemoryStorage`
 */
 //>>> `limits` -> Limits of the uploaded data
-var upload = multer({ "dest": 'uploads/' });
+//> An object specifying
+//> the size limits of the optional properties.
+//> `fileSize` -> For `multipart` forms,
+//> the max file size (in bytes) -> default: Infinity
+//> `fieldSize` -> Max field value size -> default:	1MB
+//var upload = multer({ "dest": 'uploads/' });
+//>>> MemoryStorage:
+//> The memory storage engine
+//> stores the files in memory as Buffer objects.
+//> It doesn't have any options.
+var storage = multer.memoryStorage();
+var upload = multer({ storage: storage });
+//> When using memory storage,
+//> the `file info` will contain
+//> a `field` called `buffer`
+//> that contains the entire file.
+//>>> WARNING:
+//> Uploading very large files, or
+//> relatively small files in large numbers very quickly,
+//> can cause
+//> your application to run out of memory
+//> when memory storage is used.
 //*** npm modules end ***//
 
 // for correct connection using .env
@@ -267,7 +288,20 @@ app
 if (false) {
 app
   .route('/')
+  //>>> app.post(path, callback [, callback ...])
   .post('/upload'
+    ,(req, res) => {
+      upload(req
+        ,res
+        ,(err) => {
+          if (err) {
+            // An error occurred when uploading
+            return;
+          }
+
+          // Everything went fine
+      })
+    }
     //>>> .single(fieldname)
     //>>> Accept a single file
     //>>> with the name `fieldname`.

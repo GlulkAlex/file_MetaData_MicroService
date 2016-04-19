@@ -140,9 +140,11 @@ var test_1_0 = function(description){
       )
     );
   };
-}("test 1.0: must receive correct / expected 'file_Size' as response")
+}("test 1.0: must return correct / expected 'file_Size' as response")
 //("package.json", 475)
 ;
+
+//}("test 1.1: must return error message if uploaded 'file_Size' exceeds the limit")
 /*** tests end ***/
 
 //***#####################################################################***//
