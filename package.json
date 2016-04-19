@@ -1,0 +1,36 @@
+{
+  "name": "api-file-metadata-microservice",
+  "version": "0.0.1",
+  "description": "A Node.js microservice app using Express 4",
+  "main": "main.js",
+  "scripts": {
+    "test": "node tests.js",
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "express": "4.13.4",
+    "multer": "1.1.0"
+  },
+  "engines": {
+    "node": "^4.2.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GlulkAlex/file_MetaData_MicroService.git"
+  },
+  "keywords": [
+    "node",
+    "heroku",
+    "express",
+    "api",
+    "microservice",
+    "multer",
+    "POST",
+    "REST"
+  ],
+  "author": {
+    "name": "GlukAlex"
+  },
+  "license": "MIT",
+  "devDependencies": {}
+}

@@ -1,0 +1,106 @@
+<html>
+  <head>
+    <title>API Basejump: File Metadata Microservice</title>
+    <!--link rel="icon" type="image/x-icon" href="favicon.ico" /-->
+    <!-- in order to suppress "favicon.ico" requests using hack below /-->
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgo=">
+    <link rel="author" type="text/html" href="https://github.com/GlulkAlex/">
+    <link rel="help" type="text/markdown" href="https://github.com/GlulkAlex/file_MetaData_MicroService.git">
+    <meta name="keywords"
+          content="
+          node,
+          NodeJS,
+          heroku,
+          express,
+          api,
+          microservice,
+          multer,
+          POST,
+          REST
+    ">
+    <meta name="description" content="API Basejump: File Metadata Microservice">
+    <meta charset="UTF-8">
+    <meta name="author" content="GlukAlex">
+    <style>
+      body {
+      background-color: lightblue;
+      }
+      h1 {
+      text-decoration: underline;
+      }
+      h3 {
+      border-left-style: solid;
+      border-left-color: green;
+      border-left-width: thick;
+      }
+      p {
+      color: green;
+      text-align: center;
+      }
+      li p {
+      color: blue;
+      text-align: left;
+      }
+      code {
+      color: Chocolate;
+      background-color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>API Basejump: File Metadata (size) Microservice</h1>
+    <section>
+      <h3>Objective:</h3>
+      <p>Build a full stack JavaScript app
+        <br>
+      that is functionally similar to this
+        <br>
+      <a href="https://cryptic-ridge-9197.herokuapp.com/">reference case</a>
+        <br>
+        and
+        <br>
+      deploy it to Heroku.</p>
+      <h3>User story:</h3>
+      <ul>
+        <li>
+          <p>user can
+            <br>
+            <em>submit</em> a FormData object
+            <br>
+            that includes a <strong>file upload</strong>.
+          </p>
+        </li>
+        <li>
+          <p>
+            after <em>submission</em>,
+            <br>
+            user will receive
+            <br>
+            the <mark><strong>file size</strong></mark> in <var>bytes</var>
+            <br>
+            within the <code>JSON</code> <em>response</em>.
+          </p>
+        </li>
+      </ul>
+    </section>
+    <section>
+      <h3>Usage examples (live demo):</h3>
+      <ul>
+        <li>
+          Link:
+          <a
+            href="https://api-file-metadata-microservice.herokuapp.com/">
+          https://api-file-metadata-microservice.herokuapp.com/</a>
+        </li>
+        <li>
+          Input sample:
+          <code>package.json</code>
+        </li>
+        <li>
+          Output samples:
+          <code>{"file_Size": 475}</code>
+        </li>
+      </ul>
+    </section>
+  </body>
+</html>
