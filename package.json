@@ -1,6 +1,6 @@
 {
   "name": "api-file-metadata-microservice",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A Node.js microservice app using Express 4",
   "main": "main.js",
   "scripts": {

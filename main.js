@@ -80,6 +80,19 @@ var router = express.Router();
 
 //const mongo_Client = require('mongodb').MongoClient;
 var multer  = require('multer');
+//var upload = multer();
+//>>> multer(opts)
+//>>> `dest` | `storage` -> Where to store the files
+/*
+If you want more control over your uploads,
+you'll want to
+use the `storage` option instead of `dest`.
+Multer ships with
+storage engines:
+`DiskStorage` and
+`MemoryStorage`
+*/
+//>>> `limits` -> Limits of the uploaded data
 var upload = multer({ "dest": 'uploads/' });
 //*** npm modules end ***//
 
@@ -251,54 +264,37 @@ app
   }
 );
 
-.post('/profile', upload.single('avatar'), function (req, res, next) {
-  // req.file is the `avatar` file
-  // req.body will hold the text fields, if there were any
-})
-
+if (false) {
 app
-  // "/api/imagesearch/:term/" -> req.params.keyName => term
-  // req.params.term => "owl%20funny?offset=10"
-  .route("/api/imagesearch/:term/")
-  .get(
-    (req, res, next) => {
-    // for example.com/users?sort=desc -> req.path => "/users"
-    // for route /user/:name
-    // GET /user/tj -> req.params.name => "tj"
-    // GET /search?q=tobi+ferret -> req.query.q => "tobi ferret"
-    // GET /lolcats%20funny?offset=10
-    var offset = 0;
+  .route('/')
+  .post('/upload'
+    //>>> .single(fieldname)
+    //>>> Accept a single file
+    //>>> with the name `fieldname`.
+    //>>> The single `file` will be stored in 'req.file'.
+    ,upload.single('avatar')
+    ,(req, res, next) => {
+
+      // req.file is the `avatar` file
+      // req.body will hold the text fields, if there were any
+      //>>> File information:
+      // `fieldname` -> Field name specified in the form
+      // `originalname` -> Name of the file on the user's computer
+      // `size` -> Size of the file in bytes
+      // `buffer` -> A Buffer of the entire file (in/for) MemoryStorage
+
     var json_Obj = {};
     var document_Obj = {};
-    var term = req.params.term;
-    var search_URL = "";
 
     document_Obj = {
       "term": term//JSON.stringify(document_Obj)
-      // NOTE
-      // The BSON `timestamp` type is for internal MongoDB use.
-      /*
-      Date
-      BSON Date is
-      a 64-bit integer
-      that represents the number of milliseconds since the Unix epoch (Jan 1, 1970).
-      This results in
-      a representable date range
-      of about 290 million years into the past and future.
-      The official BSON specification refers to the BSON Date type as
-      the UTC datetime.
-      Changed in version 2.0: BSON Date type is signed.
-      Negative values represent dates before 1970.
-      */
-      // Using new Date(), creates a new date object with the current date and time
       ,"when": new Date()
         //"2016-04-08T08:12:08.752Z"
-        // The T in the date string, between the date and time, indicates UTC time.
-        // UTC (Universal Time Coordinated) is the same as GMT (Greenwich Mean Time).
     };
 
     //>>> POST -> upload file from client <<<//
     // async block //
+    /*
           // `explicitly` convert to `Strings`
           // rather than standard `Buffer` `objects`
           response.setEncoding('utf8');
@@ -357,10 +353,12 @@ app
           .jsonp(json_Obj);
       }
     )
+    */
     // async block end //
 
   }
 );
+}
 
 options = {
   dotfiles: 'ignore'
