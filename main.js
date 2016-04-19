@@ -285,12 +285,24 @@ app
   }
 );
 
+app
+  .route('/upload')
+  //>>> app.post(path, callback [, callback ...])
+  .post(//'/upload'
+    (req, res) => {
+      // 'content-type': 'application/x-www-form-urlencoded'
+      if (is_Debug_Mode) {console.log(".route('/upload').post(req.headers)", req.headers);}
+      res.send("POST request to \"upload\" route");
+    }
+  )
+;
+
 if (false) {
 app
-  .route('/')
+  .route('/upload')
   //>>> app.post(path, callback [, callback ...])
-  .post('/upload'
-    ,(req, res) => {
+  .post(//'/upload'
+    (req, res) => {
       upload(req
         ,res
         ,(err) => {
