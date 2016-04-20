@@ -104,9 +104,10 @@ storage engines:
 //> stores the files in memory as Buffer objects.
 //> It doesn't have any options.
 var storage = multer.memoryStorage();
-var upload = multer({ "storage": storage });
-//var upload = multer({ storage: storage }).single('upload_File');
-var parser = upload.fields([{ "name": 'upload_File', "maxCount": 1 }]);
+var upload_In_Mem = multer({ "storage": storage });
+var upload_Single = upload_In_Mem.single('upload_File');
+var upload_Array = upload_In_Mem.array('upload_File', 1);
+var parser = upload_In_Mem.fields([{ "name": 'upload_File', "maxCount": 1 }]);
 //> When using memory storage,
 //> the `file info` will contain
 //> a `field` called `buffer`
@@ -287,12 +288,17 @@ app
   }
 );
 
-if (false) {
+// DONE make different POST routes for request handler
+// DONE & for each of multer's parser methods -> single, array, fields
+// TODO add limit to uploaded file size, abort if bigger
+// TODO create dedicated parser for request's form single file upload
+//if (false) {
+if (true) {
 //> it works -> receives headers & file content
 //> but how to
 // TODO separate them in order to calculate right file size in bytes ?
 app
-  .post('/upload'
+  .post('/upload/custom_Parser'
     /*
     var parser = upload.fields([
       { name: 'empty', maxCount: 1 },
@@ -307,6 +313,8 @@ app
     ,res
     ,next) => {
       var content_Str = "";
+
+      if (is_Debug_Mode) {console.log(`.route(${req.route.path}) uploading file ...`);}
       //message.socket
       //socket.connect(options[, connectListener])
       req.socket
@@ -430,18 +438,19 @@ app
 ;
 }
 
-if (false) {
+if (true) {
+//if (false) {
 app
-  .route('/upload')
+  .route('/upload/single_File')
   //>>> app.post(path, callback [, callback ...])
   .post(//'/upload'
-    upload
-      .single('upload_File')
+    //upload.single('upload_File')
+    upload_Single
     ,(req, res, next) => {
       //>>> POST -> upload file from client <<<//
       var json_Obj = {};
 
-      if (is_Debug_Mode) {console.log(".route('/upload') uploading file ...");}
+      if (is_Debug_Mode) {console.log(`.route(${req.route.path}) uploading file ...`);}
       //upload(req
       //>>> .single(fieldname)
       //>>> Accept a single file
@@ -469,29 +478,32 @@ app
       //if (is_Debug_Mode) {console.log("req.file.size:", req.file.size);}
       //if (is_Debug_Mode) {console.log("uploaded file size is:", req.file.buffer.length);}
       //if (is_Debug_Mode) {console.log("req.buffer.length:", req.buffer.length);}
-      //json_Obj = {"file_Size": req.file.size};
-      json_Obj = {"file_Size": req.buffer};
+      if (req.file) {
+        json_Obj = {"file_Size": req.file.size};
+      }
+      //json_Obj = {"file_Size": req.buffer};
       //json_Obj = {"file_Size": req.body};
       res
         .status(200)
         .jsonp(json_Obj);
 
 
-      //return req.file.size;
+      return json_Obj.file_Size;
     }
   )
 ;
 }
 
-if (false) {
+if (true) {
+//if (false) {
 app
-  .route('/upload')
+  .route('/upload/array')
   //>>> app.post(path, callback [, callback ...])
   .post(//'/upload'
     (req, res, next) => {
       //>>> POST -> upload file from client <<<//
-      // async block //
-      if (is_Debug_Mode) {console.log(".route('/upload') uploading file ...");}
+      //if (is_Debug_Mode) {console.log(".route('/upload') uploading file ...");}
+      if (is_Debug_Mode) {console.log(`.route(${req.route.path}) uploading file ...`);}
       //upload(req
       //>>> .single(fieldname)
       //>>> Accept a single file
@@ -501,52 +513,49 @@ app
         //.single('upload_File')
         //TypeError: upload.single(...).then is not a function
         //.then((req
-      upload(req
-          ,res
-          ,(err) => {
-            var json_Obj = {};
 
-            if (err) {
-              // An error occurred when uploading
-              if (is_Debug_Mode) {console.log("upload.single() error:", err.message);}
-              json_Obj = {
-                "error": err.code
-                ,"status": "not OK"
-                ,"message": "error for .post().upload.single(): " + err.message
-              };
-              res
-                // 404 Not Found
-                // 405 Method Not Allowed
-                // 500 Internal Server Error
-                .status(405)
-                .jsonp(json_Obj);
+      // async block //
+      upload_Array(req
+        ,res
+        ,(err) => {
+          var json_Obj = {};
 
-
-              return err;
-            } else {
-              // Everything went fine
-              //>>>
-              // 'req.file' is the `upload_File` file
-              // 'req.body' will hold the text fields, if there were any
-              //>>> File information:
-              // `fieldname` -> Field name specified in the form
-              // `originalname` -> Name of the file on the user's computer
-              // `size` -> Size of the file in bytes
-              // `buffer` -> A Buffer of the entire file (in/for) MemoryStorage
-
-              //TypeError: Cannot read property 'fieldname' of undefined
-              if (is_Debug_Mode) {console.log("req.file.fieldname:", req.file.fieldname);}
-              if (is_Debug_Mode) {console.log("req.file.originalname:", req.file.originalname);}
-              if (is_Debug_Mode) {console.log("req.file.size:", req.file.size);}
-              if (is_Debug_Mode) {console.log("uploaded file size is:", req.file.buffer.length);}
-              json_Obj = {"file_Size": req.file.size};
-              res
-                .status(200)
-                .jsonp(json_Obj);
+          if (err) {
+            // An error occurred when uploading
+            // Unexpected field
+            json_Obj = {
+              "error": err.code
+              ,"status": "not OK"
+              ,"message": "error for post " + req.route.path + ": " + err.message
+            };
+            res
+              // 404 Not Found
+              // 405 Method Not Allowed
+              // 500 Internal Server Error
+              .status(405)
+              .jsonp(json_Obj);
 
 
-              return req.file.size;
+            return err;
+          } else {
+            // Everything went fine
+            if (is_Debug_Mode) {console.log("req.body:", req.body);}
+            if (req.files) {
+              // req.files.hasOwnProperty("0")
+              if (Array.isArray(req.files)) {
+                if (req.files.length > 0) {
+                  json_Obj = {"file_Size": req.files[0].size};
+                }
+              }
+              //json_Obj = {"file_Size": req.files};
             }
+            res
+              .status(200)
+              .jsonp(json_Obj);
+
+
+            return req.files;
+          }
         })
       ;
       // async block end //
@@ -559,11 +568,13 @@ if (true) {
 //if (false) {
 app
   .route('/upload')
+  //.route('/upload/fields')
   .post(//'/upload'
     (req, res, next) => {
       //>>> POST -> upload file from client <<<//
       // async block //
-      if (is_Debug_Mode) {console.log(".route('/upload') uploading file ...");}
+      //if (is_Debug_Mode) {console.log(".route('/upload') uploading file ...");}
+      if (is_Debug_Mode) {console.log(`.route(${req.route.path}) uploading file ...`);}
       if (is_Debug_Mode) {console.log(".route('/upload').post(req.headers):", req.headers);}
       //req.get("boundary") | req.header("boundary")
       ///if (is_Debug_Mode) {console.log("req.get('boundary'):", req.get("boundary"));}
@@ -604,11 +615,12 @@ app
 
             return req.files;
           }
-      })
+        })
       ;
   })
 ;
 }
+
 
 options = {
   dotfiles: 'ignore'
