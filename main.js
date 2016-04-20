@@ -286,16 +286,72 @@ app
   }
 );
 
-
+if (true) {
+//> it works -> receives headers & file content
+//> but how to separate them in order to calculate right file size in bytes ?
 app
   .post('/upload'
-    ,upload.array(),
-    function (req
-      ,res
-      ,next) {
-        //console.log(req.body);
-        res.json(req.body);
-});
+    //,upload.array()
+    ,(req
+    ,res
+    ,next) => {
+      //message.socket
+      //socket.connect(options[, connectListener])
+      req.socket
+        .on("connect"
+          ,() => {
+            if (is_Debug_Mode) {console.log("req.socket \"connect\" event");}
+          }
+        )
+      ;
+      //socket.setEncoding()
+      //readable.setEncoding('utf8');
+      ///req.socket.setEncoding('utf8');
+      req.setEncoding('utf8');
+      //readable.on('data', (chunk) => {
+      //>>> switch to flowing mode <<<//
+      req
+        //.socket
+        .on("data"
+          ,(chunk) => {
+            if (is_Debug_Mode) {console.log("req.socket \"data\" event");}
+            if (is_Debug_Mode) {console.log("data chunk:", chunk);}
+            if (is_Debug_Mode) {console.log("chunk.length:", chunk.length);}
+          }
+        )
+      ;
+      req
+        //.socket
+        .on("end"
+          ,(data) => {
+            if (is_Debug_Mode) {console.log("req.socket \"end\" event");}
+          }
+        )
+      ;
+      req
+        .socket
+        .on("error"
+          ,(err) => {
+            if (is_Debug_Mode) {console.log("req.socket \"error\" event:", err.message);}
+          }
+        )
+      ;
+
+      //>>> switch to flowing mode <<<//
+      //req.resume();
+      req
+        .once("end"
+          ,(data) => {
+            if (is_Debug_Mode) {console.log("req.once(\"end\",(data)", data);}
+            if (is_Debug_Mode) {console.log("req.body", req.body);}
+            res.json(req.files);
+        })
+      ;
+      //console.log(req.body);
+      //res.json(req.body);
+  })
+;
+}
 
 if (false) {
 app
@@ -305,6 +361,16 @@ app
     (req, res, next) => {
       // 'content-type': 'application/x-www-form-urlencoded'
       if (is_Debug_Mode) {console.log(".route('/upload').post(req.headers)", req.headers);}
+      req.resume();
+      //request.end([data][, encoding][, callback])
+      req
+        .once("end"
+          ,(data) => {
+            if (is_Debug_Mode) {console.log("req.once(\"end\",(data)", data);}
+            if (is_Debug_Mode) {console.log("req.body", req.body);}
+        })
+      ;
+
       res.set('Content-Type', 'text/html');
       //res.send("POST request to \"upload\" route");
       res.send("POST request to \"upload\" route");
@@ -347,8 +413,10 @@ app
       //if (is_Debug_Mode) {console.log("req.file.originalname:", req.file.originalname);}
       //if (is_Debug_Mode) {console.log("req.file.size:", req.file.size);}
       //if (is_Debug_Mode) {console.log("uploaded file size is:", req.file.buffer.length);}
+      //if (is_Debug_Mode) {console.log("req.buffer.length:", req.buffer.length);}
       //json_Obj = {"file_Size": req.file.size};
-      json_Obj = {"file_Size": req.body};
+      json_Obj = {"file_Size": req.buffer};
+      //json_Obj = {"file_Size": req.body};
       res
         .status(200)
         .jsonp(json_Obj);
