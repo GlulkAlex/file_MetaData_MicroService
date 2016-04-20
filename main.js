@@ -103,8 +103,13 @@ storage engines:
 //> The memory storage engine
 //> stores the files in memory as Buffer objects.
 //> It doesn't have any options.
+//> 1 Byte = 8 Bits
+//> 1 KiB = 1024 Bytes
+//> 1 MiB = 1024 KiB
+var limits = {"fileSize": 1024 * 1024 * 3};
 var storage = multer.memoryStorage();
-var upload_In_Mem = multer({ "storage": storage });
+//var upload_In_Mem = multer({ "storage": storage });
+var upload_In_Mem = multer({ "storage": storage, "limits": limits });
 var upload_Single = upload_In_Mem.single('upload_File');
 var upload_Array = upload_In_Mem.array('upload_File', 1);
 var parser = upload_In_Mem.fields([{ "name": 'upload_File', "maxCount": 1 }]);
@@ -290,7 +295,7 @@ app
 
 // DONE make different POST routes for request handler
 // DONE & for each of multer's parser methods -> single, array, fields
-// TODO add limit to uploaded file size, abort if bigger
+// DONE add limit to the uploaded file size, abort if bigger
 // TODO create dedicated parser for request's form single file upload
 //if (false) {
 if (true) {
@@ -445,6 +450,7 @@ app
   //>>> app.post(path, callback [, callback ...])
   .post(//'/upload'
     //upload.single('upload_File')
+    // TODO dedicated error handler missing
     upload_Single
     ,(req, res, next) => {
       //>>> POST -> upload file from client <<<//
@@ -592,7 +598,7 @@ app
             json_Obj = {
               "error": err.code
               ,"status": "not OK"
-              ,"message": "error for .post().upload.single(): " + err.message
+              ,"message": "error for post " + req.route.path + ": " + err.message
             };
             res
               // 404 Not Found
