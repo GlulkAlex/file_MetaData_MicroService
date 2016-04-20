@@ -104,8 +104,9 @@ storage engines:
 //> stores the files in memory as Buffer objects.
 //> It doesn't have any options.
 var storage = multer.memoryStorage();
-var upload = multer({ storage: storage });
+var upload = multer({ "storage": storage });
 //var upload = multer({ storage: storage }).single('upload_File');
+var parser = upload.fields([{ "name": 'upload_File', "maxCount": 1 }]);
 //> When using memory storage,
 //> the `file info` will contain
 //> a `field` called `buffer`
@@ -286,11 +287,21 @@ app
   }
 );
 
-if (true) {
+if (false) {
 //> it works -> receives headers & file content
-//> but how to separate them in order to calculate right file size in bytes ?
+//> but how to
+// TODO separate them in order to calculate right file size in bytes ?
 app
   .post('/upload'
+    /*
+    var parser = upload.fields([
+      { name: 'empty', maxCount: 1 },
+      { name: 'tiny0', maxCount: 1 }]);
+    assert.equal(req.files['tiny0'][0].fieldname, 'tiny0')
+    assert.equal(req.files['tiny0'][0].originalname, 'tiny0.dat')
+    assert.equal(req.files['tiny0'][0].size, 122)
+    assert.equal(req.files['tiny0'][0].buffer.length, 122)
+    */
     //,upload.array()
     ,(req
     ,res
@@ -330,6 +341,7 @@ app
             /* >> data format // var CRLF = '\r\n';
             "
             ------WebKitFormBoundaryRlQf1oHVfylrtnOJ\r\n  <- start tag, ends with CRLF
+            >>> == boundary <- req.get("boundary") | req.header("boundary")
             >>> headers <<<
             Content-Disposition: form-data;
             name=\"upload_File\";
@@ -445,7 +457,12 @@ app
       // `originalname` -> Name of the file on the user's computer
       // `size` -> Size of the file in bytes
       // `buffer` -> A Buffer of the entire file (in/for) MemoryStorage
-
+      /*
+      assert.equal(req.file.fieldname, 'small0')
+      assert.equal(req.file.originalname, 'small0.dat')
+      assert.equal(req.file.size, 1778)
+      assert.equal(req.file.buffer.length, 1778)
+      */
       //TypeError: Cannot read property 'fieldname' of undefined
       //if (is_Debug_Mode) {console.log("req.file.fieldname:", req.file.fieldname);}
       //if (is_Debug_Mode) {console.log("req.file.originalname:", req.file.originalname);}
@@ -535,6 +552,61 @@ app
       // async block end //
     }
   )
+;
+}
+
+if (true) {
+//if (false) {
+app
+  .route('/upload')
+  .post(//'/upload'
+    (req, res, next) => {
+      //>>> POST -> upload file from client <<<//
+      // async block //
+      if (is_Debug_Mode) {console.log(".route('/upload') uploading file ...");}
+      if (is_Debug_Mode) {console.log(".route('/upload').post(req.headers):", req.headers);}
+      //req.get("boundary") | req.header("boundary")
+      ///if (is_Debug_Mode) {console.log("req.get('boundary'):", req.get("boundary"));}
+      if (is_Debug_Mode) {console.log("req.get('content-type'):", req.get("content-type"));}
+      if (is_Debug_Mode) {console.log("boundary:", req.get("content-type").split(';')[1]);}
+      ///if (is_Debug_Mode) {console.log("req.header('boundary'):", req.header("boundary"));}
+      if (is_Debug_Mode) {console.log("req.header('content-type'):", req.header("content-type"));}
+      parser(req
+        ,res
+        ,(err) => {
+          var json_Obj = {};
+
+          if (err) {
+            // An error occurred when uploading
+            json_Obj = {
+              "error": err.code
+              ,"status": "not OK"
+              ,"message": "error for .post().upload.single(): " + err.message
+            };
+            res
+              // 404 Not Found
+              // 405 Method Not Allowed
+              // 500 Internal Server Error
+              .status(405)
+              .jsonp(json_Obj);
+
+
+            return err;
+          } else {
+            // Everything went fine
+            if (req.files) {
+              json_Obj = {"file_Size": req.files['upload_File'][0].size};
+            }
+            res
+              .status(200)
+              .jsonp(json_Obj);
+
+
+            return req.files;
+          }
+      })
+      ;
+  })
 ;
 }
 
