@@ -295,6 +295,7 @@ app
     ,(req
     ,res
     ,next) => {
+      var content_Str = "";
       //message.socket
       //socket.connect(options[, connectListener])
       req.socket
@@ -308,6 +309,15 @@ app
       //readable.setEncoding('utf8');
       ///req.socket.setEncoding('utf8');
       req.setEncoding('utf8');
+      /*
+      This properly handles
+      multi-byte characters
+      that would otherwise be potentially mangled
+      if you simply pulled the Buffers directly and
+      called buf.toString(encoding) on them.
+      If you want to read the data as strings,
+      always use this method.
+      */
       //readable.on('data', (chunk) => {
       //>>> switch to flowing mode <<<//
       req
@@ -317,6 +327,23 @@ app
             if (is_Debug_Mode) {console.log("req.socket \"data\" event");}
             if (is_Debug_Mode) {console.log("data chunk:", chunk);}
             if (is_Debug_Mode) {console.log("chunk.length:", chunk.length);}
+            /* >> data format // var CRLF = '\r\n';
+            "
+            ------WebKitFormBoundaryRlQf1oHVfylrtnOJ\r\n  <- start tag, ends with CRLF
+            >>> headers <<<
+            Content-Disposition: form-data;
+            name=\"upload_File\";
+            filename=\"index.html\"\r\n
+            Content-Type: text/html
+            \r\n\r\n  <- headers end tag (double CRLF)
+            >>> headers end <<<
+            >>> file content / body <<<
+            >>> file content / body end <<<
+            \r\n  <- file content / body end tag (CRLF), before end tag == start tag
+            ------WebKitFormBoundaryRlQf1oHVfylrtnOJ--\r\n <- end tag == start tag
+            "
+            */
+            content_Str += chunk;
           }
         )
       ;
@@ -343,8 +370,19 @@ app
         .once("end"
           ,(data) => {
             if (is_Debug_Mode) {console.log("req.once(\"end\",(data)", data);}
+            /*
+            req.body
+            Contains key-value pairs of data
+            submitted in the request body.
+            By default, it is undefined, and
+            is populated when
+            you use body-parsing middleware
+            such as body-parser and multer.
+            */
+            // req.get(field) Aliased as req.header(field)
             if (is_Debug_Mode) {console.log("req.body", req.body);}
-            res.json(req.files);
+            //res.json(req.files);
+            res.json(content_Str);
         })
       ;
       //console.log(req.body);
