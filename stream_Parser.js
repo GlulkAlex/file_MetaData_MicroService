@@ -95,12 +95,12 @@ Content-Disposition: form-data;
 name=\"upload_File\";
 filename=\"index.html\"\r\n
 Content-Type: text/html
-\r\n\r\n  <- headers end tag (double CRLF)
+\r\n\r\n  <- headers end tag (? double CRLF ?)
 >>> headers end <<<
 >>> file content / body <<<
 >>> file content / body end <<<
 \r\n  <- file content / body end tag (CRLF), before end tag == start tag
-------WebKitFormBoundaryRlQf1oHVfylrtnOJ--\r\n <- end tag == start tag + '--' + CRLF
+------WebKitFormBoundaryRlQf1oHVfylrtnOJ--\r\n <- end tag == start tag + '--' (? + CRLF ?)
 "
 */
 // helper

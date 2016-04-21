@@ -104,11 +104,12 @@ var test_1_0 = function(description){
     //var boundaryKey = Math.random().toString(16);
     var boundary_Key = "file_Content_Boundary";
     var options = {
-      hostname: url_Obj.hostname//'www.google.com',
-      //port: 80,
-      ,path: url_Obj.pathname//'/upload',
-      ,method: 'POST'
-      ,headers: {
+      "hostname": url_Obj.hostname//'www.google.com',
+      //> request fails if wrong port
+      ,"port": url_Obj.port//80,
+      ,"path": url_Obj.pathname//'/upload',
+      ,"method": 'POST'
+      ,"headers": {
         'Content-Type': 'multipart/form-data' + '; boundary="' + boundary_Key + '"'
         //,'Content-Length': postData.length
       }
@@ -124,6 +125,8 @@ var test_1_0 = function(description){
     } else {//if (url.slice(0, 5) == 'http')
       client = require('http');
     }
+    console.log("POST options:", options);
+    console.log("url_Obj:", url_Obj);
     //>>> initializing end <<<//
     /*
     By default
@@ -142,33 +145,12 @@ var test_1_0 = function(description){
         writer.end('Goodbye\n');
       });
     */
-    /*request.write(
-      '--' + boundary_Key + '\r\n'
-      // "name" is the name of the form field
-      // "filename" is the name of the original file
-      + 'Content-Disposition: form-data; name="upload_File"; filename="' + file_Name + '"\r\n'
-      // file's mime type, if known
-      //+ 'Content-Type: application/octet-stream\r\n'
-      //+ 'Content-Transfer-Encoding: binary\r\n\r\n'
-      + '\r\n\r\n'
-    );
 
-    fs
-      .createReadStream('./' + file_Name
-        ,{ bufferSize: 4 * 1024 })
-      .on('end'
-        , () => {
-          // mark the end of the only part
-          // request.end() puts the `boundary` on a new line.
-          request.end('\r\n--' + boundary_Key + '--');
-        })
-      .pipe(request, { end: false })
-    ;
-    */
 
-    return Promise.resolve(
+    return Promise.resolve(() => {
+      console.log("resolving POST request ...");
       //http.request(options[, callback])
-      client
+      var request = client
         .request(
           options,
           (response) => {
@@ -187,7 +169,7 @@ var test_1_0 = function(description){
             console.log("headers: ", response.headers);
 
             //readable
-            //response.resume();
+            response.resume();
             // `explicitly` convert to `Strings`
             // rather than standard `Buffer` `objects`
             response.setEncoding('utf8');
@@ -197,16 +179,27 @@ var test_1_0 = function(description){
                 (data) => {
                   // row data Buffer
                   console.log("data:", data);
+                  result = JSON.parse(data);
+                  assert.equal(result.file_Size, expected_Result);
                 }
             );
             //response.end([data][, encoding][, callback])
             //response.body ? console.log("data:", data) : console.log("response.body:", response.body);
-            //console.log("response.body:", response.body);
+            /*response
+              .on(
+                'end',
+                (data) => {
+                  //undefined
+                  console.log("end data:", data);
+                  //undefined
+                  console.log("response.body:", response.body);
+                }
+            );*/
 
             // An alias of assert.ok()
             // Tests if value is truthy.
             // It is equivalent to -> assert.equal(!!value, true, message).
-            assert(response.statusCode < expected_Result);
+            //assert(response.statusCode < expected_Result);
             //assert.equal(response.statusCode, expected_Result);
             //assert.deepEqual(results, expected_Results);
 
@@ -216,14 +209,60 @@ var test_1_0 = function(description){
           }
         )
         .on('error', (err) => {console.log("client.request error:", err.stack);}
-      )
-    );
+        )
+      ;
+      request
+        .write(
+          '--' + boundary_Key + '\r\n'
+          // "name" is the name of the form field
+          // "filename" is the name of the original file
+          + 'Content-Disposition: form-data; name="upload_File"; filename="' + file_Name + '"\r\n'
+          // file's mime type, if known
+          //+ 'Content-Type: application/octet-stream\r\n'
+          //+ 'Content-Transfer-Encoding: binary\r\n\r\n'
+          //+ '\r\n\r\n' // <- added +2 bytes to expected / actual file size
+          + '\r\n'
+        )
+      ;
+      //fs.createReadStream(path[, options])
+      var stream_Defaults = {
+        "flags": 'r',
+        "encoding": null,
+        "fd": null,
+        "mode": 0o666,
+        "autoClose": true
+      };
+      fs
+        // fs.read(fd, buffer, offset, length, position, callback)
+        .createReadStream('./' + file_Name
+          //,{ "bufferSize": 4 * 1024 }
+        )
+        .on('readable', () => {console.log("fs.createReadStream readable event");})
+        .on('open', () => {console.log("fs.createReadStream open event");})
+        .on('data'
+          ,(chunk) => {
+            console.log('read %d bytes of data', chunk.length);})
+        .on('error', (err) => {console.log("fs.createReadStream error:", err.stack);})
+        .on('end'
+          , () => {
+            console.log("ending POST request ...");
+            // mark the end of the only part
+            // request.end() puts the `boundary` on a new line.
+            request.end('\r\n--' + boundary_Key + '--');
+          })
+        .pipe(request, { end: false })
+      ;
+    }())
+    ;
   };
 }("test 1.0: must return correct / expected 'file_Size' as response")
 //>>> emulates:
 //> curl -F "upload_File=@package.json;type=application/json" http://localhost:8080/upload/single_File
 //> curl -F "upload_File=@package.json;type=application/json" https://api-file-metadata-microservice.herokuapp.com
-("http://localhost:8080/upload/single_File", "package.json", 475)
+//("http://localhost:8080/upload/single_File", "package.json", 675)
+//("http://localhost:8080/upload/custom_Parser", "package.json", 675)
+//("http://localhost:8080/upload/array", "package.json", 675)
+("http://localhost:8080/upload/fields", "README.md", 697)
 //(null, "localhost", "/upload/single_File", "package.json", 475)
 //("https://api-file-metadata-microservice.herokuapp.com/upload/single_File", "package.json", 475)
 ;
