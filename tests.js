@@ -94,6 +94,7 @@ var test_1_0 = function(description){
     */
     const url_Parser = require('url');
     const fs = require('fs');
+    const path_Parser = require('path');
     var payLoad;//fs.createReadStream('file.txt');
     //readable.pipe(writable);
     //var request = require('request');
@@ -179,7 +180,14 @@ var test_1_0 = function(description){
                 (data) => {
                   // row data Buffer
                   console.log("data:", data);
-                  result = JSON.parse(data);
+                  // may fail
+                  try {
+                    result = JSON.parse(data);
+                  } catch (err) {
+                    result = {};
+                    result.error = err.message;
+                    result.file_Size = data.length;
+                  }
                   if (result.file_Size) {
                     assert.equal(result.file_Size, expected_Result);
                   }
@@ -217,12 +225,19 @@ var test_1_0 = function(description){
         .on('error', (err) => {console.log("client.request error:", err.stack);}
         )
       ;
+      console.log("path_Parser.basename(file_Name):", path_Parser.basename(file_Name));
       request
         .write(
           '--' + boundary_Key + '\r\n'
           // "name" is the name of the form field
           // "filename" is the name of the original file
-          + 'Content-Disposition: form-data; name="upload_File"; filename="' + file_Name + '"\r\n'
+          /*
+          path.basename(p[, ext])
+          Return the last portion of a `path`.
+          Similar to the Unix 'basename' command.
+          */
+          + 'Content-Disposition: form-data; name="upload_File"; filename="' +
+            path_Parser.basename(file_Name) + '"\r\n'
           // file's mime type, if known
           //+ 'Content-Type: application/octet-stream\r\n'
           //+ 'Content-Transfer-Encoding: binary\r\n\r\n'
@@ -268,8 +283,9 @@ var test_1_0 = function(description){
 //> curl -F "upload_File=@package.json;type=application/json" https://api-file-metadata-microservice.herokuapp.com
 //("http://localhost:8080/upload/single_File", "package.json", 675)
 //("http://localhost:8080/upload/single_File", "/home/gluk-alex/Documents/fg_manual/Fantasy General - Manual.pdf", 4308305)
-("http://localhost:8080/upload/single_File", "/home/gluk-alex/.local/share/Steam/steamapps/common/Xenonauts/QuickstartGuide.pdf", 848467)
-//("http://localhost:8080/upload/custom_Parser", "package.json", 675)
+//("http://localhost:8080/upload/single_File", "/home/gluk-alex/.local/share/Steam/steamapps/common/Xenonauts/QuickstartGuide.pdf", 848467)
+("http://localhost:8080/upload/custom_Parser", "/home/gluk-alex/Pictures/1st_stage_landing.jpg", 43562)
+//("http://localhost:8080/upload/single_File", "/home/gluk-alex/Pictures/1st_stage_landing.jpg", 43562)
 //> against: wc -c <"main.js" or: find "main.js" -printf "%s" or: stat --printf="%s" main.js
 //("http://localhost:8080/upload/array", "main.js", 21300)
 //("http://localhost:8080/upload/fields", "README.md", 697)

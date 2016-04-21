@@ -376,8 +376,10 @@ app
       //req.resume();
       req
         .once("end"
-          ,(data) => {
-            if (is_Debug_Mode) {console.log("req.once(\"end\",(data)", data);}
+          //,(data) => {
+          ,() => {
+            //req.once("end",(data) undefined
+            //if (is_Debug_Mode) {console.log("req.once(\"end\",(data)", data);}
             /*
             req.body
             Contains key-value pairs of data
@@ -388,7 +390,8 @@ app
             such as body-parser and multer.
             */
             // req.get(field) Aliased as req.header(field)
-            if (is_Debug_Mode) {console.log("req.body", req.body);}
+            //req.body undefined
+            //if (is_Debug_Mode) {console.log("req.body", req.body);}
             //res.json(req.files);
             res.json(content_Str);
         })

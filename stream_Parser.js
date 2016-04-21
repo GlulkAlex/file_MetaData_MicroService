@@ -125,29 +125,24 @@ function extract_File_Content(
 function parse_Stream(
   data_Chunk//: str
   //>>> main data accumulator <<<//
-  ,extracted_Tags//: (obj | dictionary) | list of (obj | dictionary)
+  ,extracted_Content//: (obj | dictionary) | list of (obj | dictionary)
   ,parser_State//: obj | dictionary
-  //,current_Tag//: str
-  //,open_Tags//: obj | dictionary
-  //,processing_State//: obj | dictionary
-  //,incomplete_Data//: str
+  ,boundary//: str
   ,is_Debug_Mode//: bool <- optional
-) {// => Promise(obj) <- parse state
+) {//: => Promise(obj) <- parse state
   "use strict";
 
+  const CRLF = '\r\n';
+  const close_Tag = '--';
   var result_Obj = {
     // 3 chars after '<'
-    // states: empty -> (undefined | "") | partial -> "di" | complete -> "DIV"
-    "open_Tag": "DIV"//<div class="rg_meta">
-    // 5 chars after ' ' after "open_Tag"
-    ,"tag_Attribute_Name": "class"
-    // 7 chars after '="' after "tag_Attribute_Name"
-    ,"tag_Attribute_Value": "rg_meta"
-    // chars after '">' after "tag_Attribute_Value" and before "close_Tag"
-    ,"tag_Content": "{\"cl\":6,\"id\":\"JJ6AX2fz8h4wLM:\", ..."//  <- may be incomplete
-    // 3 chars after '</' after "open_Tag"
-    // no else / others inner tags & divs expected
-    ,"close_Tag": "DIV"//</div> <- may never being completed
+    // states: empty -> (undefined | "") | partial -> "--" | complete -> "-- ... \r\n"
+    "open_Tag": boundary + CRLF//------WebKitFormBoundaryRlQf1oHVfylrtnOJ\r\n
+    ,"content_Headers": "Content-Disposition: form-data; ..."
+    ,"headers_End": CRLF
+    // chars after 'CRLF' and before "close_Tag"
+    ,"extracted_Content": " ... "//  <- may be incomplete
+    ,"close_Tag": boundary + "--"// <- may never being completed
   };
   var str_Item_Index = 0;
   var i = 0;
@@ -168,12 +163,12 @@ function parse_Stream(
 
   //*** defaults ***//
   if (is_Debug_Mode) {console.log("defaults:");}
-  //if (is_Debug_Mode) {console.log("extracted_Tags:", extracted_Tags);}
-  if (extracted_Tags) {
-    if (is_Debug_Mode) {console.log("extracted_Tags.length:", extracted_Tags.length);}
+  //if (is_Debug_Mode) {console.log("extracted_Content:", extracted_Content);}
+  if (extracted_Content) {
+    if (is_Debug_Mode) {console.log("extracted_Content.length:", extracted_Content.length);}
   } else {
-    extracted_Tags = [];//{};
-    if (is_Debug_Mode) {console.log("extracted_Tags is empty:", extracted_Tags);}
+    extracted_Content = [];//{};
+    if (is_Debug_Mode) {console.log("extracted_Content is empty:", extracted_Content);}
   }
   //*** defaults end ***//
 
@@ -332,7 +327,7 @@ function parse_Stream(
 
     if (snippet_Tag == '<br>') {
 
-      extracted_Tags
+      extracted_Content
         .push(
           {"context": context
           ,"thumbnail": thumbnail
@@ -340,7 +335,7 @@ function parse_Stream(
           }
         )
       ;
-      if (is_Debug_Mode) {console.log("push to extracted_Tags.length:", extracted_Tags.length);}
+      if (is_Debug_Mode) {console.log("push to extracted_Content.length:", extracted_Content.length);}
       //>>> reset <<<//
       context_Start = "";
       context = "";
@@ -363,7 +358,7 @@ function parse_Stream(
   //return Promise
   //  .resolve(
   return {
-        "extracted_Tags": extracted_Tags
+        "extracted_Content": extracted_Content
         ,"parser_State": {
           "context_Start": context_Start
           ,"context": context
