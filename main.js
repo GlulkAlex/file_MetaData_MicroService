@@ -351,23 +351,6 @@ app
             if (is_Debug_Mode) {console.log("req.socket \"data\" event");}
             if (is_Debug_Mode) {console.log("data chunk:", chunk);}
             if (is_Debug_Mode) {console.log("chunk.length:", chunk.length);}
-            /* >> data format // var CRLF = '\r\n';
-            "
-            ------WebKitFormBoundaryRlQf1oHVfylrtnOJ\r\n  <- start tag, ends with CRLF
-            >>> == boundary <- req.get("boundary") | req.header("boundary")
-            >>> headers <<<
-            Content-Disposition: form-data;
-            name=\"upload_File\";
-            filename=\"index.html\"\r\n
-            Content-Type: text/html
-            \r\n\r\n  <- headers end tag (double CRLF)
-            >>> headers end <<<
-            >>> file content / body <<<
-            >>> file content / body end <<<
-            \r\n  <- file content / body end tag (CRLF), before end tag == start tag
-            ------WebKitFormBoundaryRlQf1oHVfylrtnOJ--\r\n <- end tag == start tag
-            "
-            */
             content_Str += chunk;
           }
         )
@@ -573,8 +556,8 @@ app
 if (true) {
 //if (false) {
 app
-  .route('/upload')
-  //.route('/upload/fields')
+  //.route('/upload')
+  .route('/upload/fields')
   .post(//'/upload'
     (req, res, next) => {
       //>>> POST -> upload file from client <<<//

@@ -30,6 +30,9 @@ build/Release
 # Dependency directory
 node_modules
 
+# npm config
+.nvmrc
+
 # Optional npm cache directory
 .npm
 

@@ -66,6 +66,7 @@ function helper(
 
 
 /*** tests ***/
+// TODO write at least one working test
 var actual_Results;
 var expected_Results;
 // jshint esversion: 6, laxcomma: true
@@ -74,7 +75,10 @@ var test_1_0 = function(description){
   "use strict";
   // curred
   return function(
-    file_Name//:str
+    url//:str
+    //,hostname//:str
+    //,path//:str
+    ,file_Name//:str
     ,expected_Result//:int
   ) {// => bool
     "use strict";
@@ -82,21 +86,52 @@ var test_1_0 = function(description){
 
     var results = [];
     var result;
-    var getter = require('http');
-    //var getter = require('https');
+    /*
+    req.protocol
+    Contains the request protocol string:
+    either http or
+    (for TLS requests) https
+    */
+    const url_Parser = require('url');
+    const fs = require('fs');
+    var payLoad;//fs.createReadStream('file.txt');
+    //readable.pipe(writable);
+    var client = {};
+    //url.parse(urlStr[, parseQueryString][, slashesDenoteHost])
+    var url_Obj = url_Parser.parse(url);
+    var options = {
+      hostname: url_Obj.hostname//'www.google.com',
+      //port: 80,
+      ,path: url_Obj.pathname//'/upload',
+      ,method: 'POST'
+      ,headers: {
+        'Content-Type': 'multipart/form-data'
+        //,'Content-Length': postData.length
+      }
+    };
 
-    if (url.slice(0, 5) == 'https') {
-      url = 'http' + url.slice(5);
+    //>>> initializing <<<//
+    if (
+      //url.slice(0, 5) == 'https'
+      url_Obj.protocol == 'https:'
+    ) {
+      client = require('https');
+      //url = 'http' + url.slice(5);
+    } else {//if (url.slice(0, 5) == 'http')
+      client = require('http');
     }
+    //>>> initializing end <<<//
+
 
     return Promise.resolve(
-      getter
-        .get(
-          url,
+      //http.request(options[, callback])
+      client
+        .request(
+          options,
           (response) => {
             var content_Type;
 
-            console.log("Got response:", response.statusCode);
+            console.log("Got response.statusCode:", response.statusCode);
 
             if (response.hasOwnProperty("getHeader")) {
               content_Type = response.getHeader('content-type');
@@ -136,12 +171,17 @@ var test_1_0 = function(description){
             return content_Type;
           }
         )
-        .on('error', (err) => {console.log("url getter error:", err.stack);}
+        .on('error', (err) => {console.log("client.request error:", err.stack);}
       )
     );
   };
 }("test 1.0: must return correct / expected 'file_Size' as response")
-//("package.json", 475)
+//>>> emulates:
+//> curl -F "upload_File=@package.json;type=application/json" http://localhost:8080/upload/single_File
+//> curl -F "upload_File=@package.json;type=application/json" https://api-file-metadata-microservice.herokuapp.com
+("http://localhost:8080/upload/single_File", "package.json", 475)
+//(null, "localhost", "/upload/single_File", "package.json", 475)
+//("https://api-file-metadata-microservice.herokuapp.com/upload/single_File", "package.json", 475)
 ;
 
 //}("test 1.1: must return error message if uploaded 'file_Size' exceeds the limit")
