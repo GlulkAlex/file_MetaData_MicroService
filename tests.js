@@ -96,16 +96,20 @@ var test_1_0 = function(description){
     const fs = require('fs');
     var payLoad;//fs.createReadStream('file.txt');
     //readable.pipe(writable);
+    //var request = require('request');
+    //fs.createReadStream('file.json').pipe(request.put('http://mysite.com/obj.json'))
     var client = {};
     //url.parse(urlStr[, parseQueryString][, slashesDenoteHost])
     var url_Obj = url_Parser.parse(url);
+    //var boundaryKey = Math.random().toString(16);
+    var boundary_Key = "file_Content_Boundary";
     var options = {
       hostname: url_Obj.hostname//'www.google.com',
       //port: 80,
       ,path: url_Obj.pathname//'/upload',
       ,method: 'POST'
       ,headers: {
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'multipart/form-data' + '; boundary="' + boundary_Key + '"'
         //,'Content-Length': postData.length
       }
     };
@@ -121,7 +125,46 @@ var test_1_0 = function(description){
       client = require('http');
     }
     //>>> initializing end <<<//
+    /*
+    By default
+    stream.end() is called on the `destination`
+    when the `source` stream emits 'end',
+    so that
+    `destination` is no longer writable.
+    Pass '{ end: false }' as `options` to
+    keep the `destination` stream open.
 
+    This keeps `writer` open
+    so that
+    "Goodbye" can be written at the end.
+      reader.pipe(writer, { end: false });
+      reader.on('end', () => {
+        writer.end('Goodbye\n');
+      });
+    */
+    /*request.write(
+      '--' + boundary_Key + '\r\n'
+      // "name" is the name of the form field
+      // "filename" is the name of the original file
+      + 'Content-Disposition: form-data; name="upload_File"; filename="' + file_Name + '"\r\n'
+      // file's mime type, if known
+      //+ 'Content-Type: application/octet-stream\r\n'
+      //+ 'Content-Transfer-Encoding: binary\r\n\r\n'
+      + '\r\n\r\n'
+    );
+
+    fs
+      .createReadStream('./' + file_Name
+        ,{ bufferSize: 4 * 1024 })
+      .on('end'
+        , () => {
+          // mark the end of the only part
+          // request.end() puts the `boundary` on a new line.
+          request.end('\r\n--' + boundary_Key + '--');
+        })
+      .pipe(request, { end: false })
+    ;
+    */
 
     return Promise.resolve(
       //http.request(options[, callback])
@@ -129,6 +172,7 @@ var test_1_0 = function(description){
         .request(
           options,
           (response) => {
+
             var content_Type;
 
             console.log("Got response.statusCode:", response.statusCode);

@@ -1,6 +1,92 @@
 "use strict";
 
-/* >> data format // var CRLF = '\r\n';
+/*
+ `Encapsulation` `boundaries`
+ must not appear within the `encapsulations`, and
+ must be no longer than 70 characters,
+ not counting the two leading `hyphens`.
+
+The encapsulation `boundary`
+following the last `body` `part` is
+a distinguished `delimiter` that indicates
+that no further `body` `parts` will follow.
+Such a `delimiter` is
+identical to the previous `delimiters`,
+with the addition of
+two more `hyphens` at the end of the line:
+     --gc0p4Jq0M2Yt08jU534c0p--
+
+As a very simple example,
+the following `multipart` `message` has two `parts`,
+both of them
+`plain text`,
+one of them
+`explicitly` typed and
+one of them
+`implicitly` typed:
+
+     From: Nathaniel Borenstein <nsb@bellcore.com>
+     To:  Ned Freed <ned@innosoft.com>
+     Subject: Sample message
+     MIME-Version: 1.0
+     Content-type: multipart/mixed; boundary="simple boundary"
+
+     This is the preamble.  It is to be ignored, though it
+     is a handy place for mail composers to include an
+     explanatory note to non-MIME compliant readers.
+     --simple boundary
+
+     This is implicitly typed plain ASCII text.
+     It does NOT end with a linebreak.
+     --simple boundary
+     Content-type: text/plain; charset=us-ascii
+
+     This is explicitly typed plain ASCII text.
+     It DOES end with a linebreak.
+
+     --simple boundary--
+     This is the epilogue.  It is also to be ignored.
+
+The only mandatory parameter for the multipart Content-Type is
+the `boundary` parameter,
+which consists of 1 to 70 characters:
+  boundary := 0*69<bchars> bcharsnospace
+
+  bchars := bcharsnospace | " "
+
+  bcharsnospace := DIGIT | ALPHA | "'" | "(" | ")" | "+"  | "_" | "," | "-" | "." | "/" | ":" | "=" | "?"
+
+Overall, the body of a multipart entity may be specified as follows:
+  multipart-body := preamble
+                    1*encapsulation
+                    close-delimiter
+                    epilogue
+
+  encapsulation := delimiter CRLF body-part
+
+  delimiter := CRLF "--" boundary   ; taken from Content-Type field.
+                                    ; when content-type is multipart
+                                    ; There must be no space
+                                    ; between "--" and boundary.
+
+  close-delimiter := delimiter "--" ; Again, no space before "--"
+
+  preamble :=  *text  ;  to be ignored upon receipt.
+
+  epilogue :=  *text  ;  to be ignored upon receipt.
+
+  body-part = <"message" as defined in RFC 822,
+           with all `header` fields optional, and
+           with the specified `delimiter`
+           not occurring anywhere in the `message` `body`,
+           either on a line by itself or
+           as a substring anywhere.
+           Note that
+           the semantics of a `part` differ from
+           the semantics of a `message`,
+           as described in the text.>
+*/
+/* >> data format // var CRLF = '\r\n'; // CR+LF: CR (U+000D) followed by LF (U+000A)
 "
 ------WebKitFormBoundaryRlQf1oHVfylrtnOJ\r\n  <- start tag, ends with CRLF
 >>> == boundary <- req.get("boundary") | req.header("boundary")
@@ -14,7 +100,7 @@ Content-Type: text/html
 >>> file content / body <<<
 >>> file content / body end <<<
 \r\n  <- file content / body end tag (CRLF), before end tag == start tag
-------WebKitFormBoundaryRlQf1oHVfylrtnOJ--\r\n <- end tag == start tag
+------WebKitFormBoundaryRlQf1oHVfylrtnOJ--\r\n <- end tag == start tag + '--' + CRLF
 "
 */
 // helper
