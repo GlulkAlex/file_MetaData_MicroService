@@ -674,21 +674,41 @@ app
 // specifically with the signature (err, req, res, next):
 app
   .use((err, req, res, next) => {
-    if (is_Debug_Mode) {console.error("app.use((err)=>", err.stack);}
-    var json_Obj = {
-      "error": true//'message'
-      ,"status": 500
-      ,"message": "Custom 500 page. Something broke!"
-    };
+    // expected error -> Error: File too large
+    if (is_Debug_Mode) {console.error("app.use((err)=>", err.message);}
+    if (is_Debug_Mode) {console.error(err.stack);}
+    var json_Obj = {};
 
-    res
-      .status(500)
-      //.send("Custom 500 page. Something broke!")
-      .jsonp(json_Obj)
-      .json(json_Obj)
-      .end()
-    ;
+    //> 413 Request Entity Too Large
+    if (err.message == "File too large") {
+      json_Obj = {
+        "error": err.message
+        ,"status": 413
+        ,"message": "Request Entity Too Large"
+      };
 
+      res
+        .status(413)
+        //.send("Custom 500 page. Something broke!")
+        .jsonp(json_Obj)
+        //.json(json_Obj)
+        .end()
+      ;
+    } else {
+      json_Obj = {
+        "error": true//'message'
+        ,"status": 500
+        ,"message": "Custom 500 page. Something broke!"
+      };
+
+      res
+        .status(500)
+        //.send("Custom 500 page. Something broke!")
+        .jsonp(json_Obj)
+        //.json(json_Obj)
+        .end()
+      ;
+    }
     //next();
   }
 );

@@ -180,7 +180,13 @@ var test_1_0 = function(description){
                   // row data Buffer
                   console.log("data:", data);
                   result = JSON.parse(data);
-                  assert.equal(result.file_Size, expected_Result);
+                  if (result.file_Size) {
+                    assert.equal(result.file_Size, expected_Result);
+                  }
+                  if (result.error) {
+                    assert.equal(result.status, 413);
+                    assert.equal(result.error, "File too large");
+                  }
                 }
             );
             //response.end([data][, encoding][, callback])
@@ -234,7 +240,8 @@ var test_1_0 = function(description){
       };
       fs
         // fs.read(fd, buffer, offset, length, position, callback)
-        .createReadStream('./' + file_Name
+        .createReadStream(file_Name
+        //.createReadStream('./' + file_Name
           //,{ "bufferSize": 4 * 1024 }
         )
         .on('readable', () => {console.log("fs.createReadStream readable event");})
@@ -260,11 +267,14 @@ var test_1_0 = function(description){
 //> curl -F "upload_File=@package.json;type=application/json" http://localhost:8080/upload/single_File
 //> curl -F "upload_File=@package.json;type=application/json" https://api-file-metadata-microservice.herokuapp.com
 //("http://localhost:8080/upload/single_File", "package.json", 675)
+//("http://localhost:8080/upload/single_File", "/home/gluk-alex/Documents/fg_manual/Fantasy General - Manual.pdf", 4308305)
+("http://localhost:8080/upload/single_File", "/home/gluk-alex/.local/share/Steam/steamapps/common/Xenonauts/QuickstartGuide.pdf", 848467)
 //("http://localhost:8080/upload/custom_Parser", "package.json", 675)
-//("http://localhost:8080/upload/array", "package.json", 675)
-("http://localhost:8080/upload/fields", "README.md", 697)
+//> against: wc -c <"main.js" or: find "main.js" -printf "%s" or: stat --printf="%s" main.js
+//("http://localhost:8080/upload/array", "main.js", 21300)
+//("http://localhost:8080/upload/fields", "README.md", 697)
 //(null, "localhost", "/upload/single_File", "package.json", 475)
-//("https://api-file-metadata-microservice.herokuapp.com/upload/single_File", "package.json", 475)
+//("https://api-file-metadata-microservice.herokuapp.com/upload/single_File", "package.json", 675)
 ;
 
 //}("test 1.1: must return error message if uploaded 'file_Size' exceeds the limit")
