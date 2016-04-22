@@ -47,7 +47,7 @@ const assert = require('assert');
 /*** Node.js modules end ***/
 
 //*** application modules ***//
-//const db_Helpers = require('./db_Helpers.js');
+const parse_Stream = require('./stream_Parser.js').parse_Stream;
 //*** application modules end ***//
 
 //*** helpers ***//
@@ -66,11 +66,11 @@ function helper(
 
 
 /*** tests ***/
-// TODO write at least one working test
+// DONE write at least one working test
 var actual_Results;
 var expected_Results;
 // jshint esversion: 6, laxcomma: true
-/* laxcomma: true */
+/* jshint laxcomma: true */
 var test_1_0 = function(description){
   "use strict";
   // curred
@@ -284,7 +284,7 @@ var test_1_0 = function(description){
 //("http://localhost:8080/upload/single_File", "package.json", 675)
 //("http://localhost:8080/upload/single_File", "/home/gluk-alex/Documents/fg_manual/Fantasy General - Manual.pdf", 4308305)
 //("http://localhost:8080/upload/single_File", "/home/gluk-alex/.local/share/Steam/steamapps/common/Xenonauts/QuickstartGuide.pdf", 848467)
-("http://localhost:8080/upload/custom_Parser", "/home/gluk-alex/Pictures/1st_stage_landing.jpg", 43562)
+//("http://localhost:8080/upload/custom_Parser", "/home/gluk-alex/Pictures/1st_stage_landing.jpg", 43562)
 //("http://localhost:8080/upload/single_File", "/home/gluk-alex/Pictures/1st_stage_landing.jpg", 43562)
 //> against: wc -c <"main.js" or: find "main.js" -printf "%s" or: stat --printf="%s" main.js
 //("http://localhost:8080/upload/array", "main.js", 21300)
@@ -294,6 +294,98 @@ var test_1_0 = function(description){
 ;
 
 //}("test 1.1: must return error message if uploaded 'file_Size' exceeds the limit")
+
+/* jshint laxcomma: true */
+var test_2_0 = function(description){
+  "use strict";
+  // curred
+  return function(
+    url//: str
+    //,path + file_Name//:str
+    ,file_Name//:str
+    ,expected_Result//:int
+  ) {//: => bool
+    "use strict";
+    console.log(description);
+
+    var results = [];
+    var result;
+    var request_Headers = [
+      "POST /upload/single_File HTTP/1.1"
+      ,"Host: localhost:8080"
+      ,"Connection: keep-alive"
+      ,"Content-Length: 874"
+      ,"Cache-Control: max-age=0"
+      ,"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+      ,"Origin: http://localhost:8080"
+      ,"Upgrade-Insecure-Requests: 1"
+      ,"User-Agent: "
+      ,"Content-Type: multipart/form-data; boundary=----WebKitFormBoundary9BQiwV6pV5buxxDr"
+      ,"Referer: http://localhost:8080/"
+      ,"Accept-Encoding: gzip, deflate"
+      ,"Accept-Language: ru,en-US;q=0.8,en;q=0.6,nb;q=0.4,de;q=0.2"
+      ,"Cookie: ; session="
+    ].join('\r\n');
+    const fs = require('fs');
+    //const path_Parser = require('path');
+    var request_PayLoad = [
+      "------WebKitFormBoundary9BQiwV6pV5buxxDr"
+      ,'Content-Disposition: form-data; name="upload_File"; filename="package.json"'
+      ,"Content-Type: application/json"
+      ,""
+      ,""
+      //,"------WebKitFormBoundary9BQiwV6pV5buxxDr--"
+    ];//.join('\r\n');
+    //var boundaryKey = Math.random().toString(16);
+    var boundary_Key = request_PayLoad[0];//"file_Content_Boundary";
+    var parse_Stream_Results = {};
+
+    //>>> initializing <<<//
+    console.log("initializing ...");
+    parse_Stream_Results = parse_Stream(request_Headers, null, boundary_Key, is_Debug_Mode);
+    parse_Stream_Results = parse_Stream(request_PayLoad.join('\r\n')
+      , parse_Stream_Results
+      , boundary_Key, is_Debug_Mode);
+    console.log("initial parse_Stream_Results:", parse_Stream_Results);
+    //>>> initializing end <<<//
+    /*
+    By default
+    stream.end() is called on the `destination`
+    when the `source` stream emits 'end',
+    so that
+    `destination` is no longer writable.
+    */
+
+
+    return Promise.resolve(() => {
+      console.log("emulating file upload ...");
+      fs
+        .createReadStream(file_Name
+        )
+        .on('data'
+          ,(chunk) => {
+            console.log('read %d bytes of data', chunk.length);
+            parse_Stream_Results = parse_Stream(chunk, parse_Stream_Results, boundary_Key, is_Debug_Mode);
+          })
+        .on('error', (err) => {console.log("fs.createReadStream error:", err.stack);})
+        .on('end'
+          , () => {
+            console.log("file read stream ending ...");
+            parse_Stream_Results = parse_Stream('\r\n--' + boundary_Key + '--'
+              ,parse_Stream_Results
+              ,boundary_Key
+              ,is_Debug_Mode);
+            console.log("final parse_Stream_Results:", parse_Stream_Results);
+          })
+      ;
+    }())
+    ;
+  };
+}("test 2.0: must return correct / expected 'file_Size' from stream as response")
+//()
+//("package.json", 675)
+("http://localhost:8080/upload/single_File", "package.json", 675)
+;
 /*** tests end ***/
 
 //***#####################################################################***//

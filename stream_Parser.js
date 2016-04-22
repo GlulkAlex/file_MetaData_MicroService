@@ -121,11 +121,13 @@ function extract_File_Content(
 // TODO - optional or separate at / as method:
 // TODO -- check for stream current size limit
 // TODO -- calculate file content size in bytes
+// jshint esversion: 6, laxcomma: true
+/* laxcomma: true */
 // helper
 function parse_Stream(
   data_Chunk//: str
   //>>> main data accumulator <<<//
-  ,extracted_Content//: (obj | dictionary) | list of (obj | dictionary)
+  //,extracted_Content//: (obj | dictionary) | list of (obj | dictionary)
   ,parser_State//: obj | dictionary
   ,boundary//: str
   ,is_Debug_Mode//: bool <- optional
@@ -133,13 +135,13 @@ function parse_Stream(
   "use strict";
 
   const CRLF = '\r\n';
-  const close_Tag = '--';
+  const OPEN_TAG = boundary + CRLF;
+  const CLOSE_TAG = boundary + '--';
   var result_Obj = {
-    // 3 chars after '<'
     // states: empty -> (undefined | "") | partial -> "--" | complete -> "-- ... \r\n"
     "open_Tag": boundary + CRLF//------WebKitFormBoundaryRlQf1oHVfylrtnOJ\r\n
     ,"content_Headers": "Content-Disposition: form-data; ..."
-    ,"headers_End": CRLF
+    ,"headers_End": CRLF// <- 2-nd CRLF
     // chars after 'CRLF' and before "close_Tag"
     ,"extracted_Content": " ... "//  <- may be incomplete
     ,"close_Tag": boundary + "--"// <- may never being completed
@@ -147,50 +149,54 @@ function parse_Stream(
   var str_Item_Index = 0;
   var i = 0;
   var chunk_Length = data_Chunk.length;
+  var boundary_Length = boundary.length;
+  var open_Tag_Length = OPEN_TAG.length;
+  var close_Tag_Length = CLOSE_TAG.length;
   var current_Char = "";
   //>>> parser's state <<<///
-  var context_Start = "";// "/url?q="
-  var context = "";// "http://www.catersnews.com/ ..."
-  var context_End = "";// "&amp;"
-  var thumbnail_Start = "";// 'src="'
-  var thumbnail = "";// "https://encrypted-tbn1.gstatic.com/images?q=tbn:"
-  var thumbnail_End = "";// '"'
-  var snippet_Start = 0;//"";// '<br>', next after </cite> <- br_Counter = 2
-  // TODO skip all in snippet "< ... >"
-  var snippet = "";// "Adorable moment two tiny <b>mice</b>"
-  var snippet_Tag = "";// "< ... >" <- [0] | .slice(0, 1) == "<" && .slice(-1) == ">"
-  var snippet_End = "";// snippet_Tag == '<br>' <- br_Counter = 3
+  var open_Tag = "";
+  var content_Headers = "";
+  var headers_End = "";
+  // ? Buffer ?
+  // Buffer.concat([buf1, buf2, buf3], totalLength == buf1.length + buf2.length + buf3.length);
+  // Buffer.from('this is a tést');
+  // Buffer.from('7468697320697320612074c3a97374', 'hex');
+  // new Buffer('7468697320697320612074c3a97374', 'hex');
+  // TODO how to get / set file content encoding ?
+  var extracted_Content = Buffer.from('', 'utf8');
+  var char_Buffer = Buffer.from('', 'utf8');
+  var close_Tag = "";
 
   //*** defaults ***//
   if (is_Debug_Mode) {console.log("defaults:");}
-  //if (is_Debug_Mode) {console.log("extracted_Content:", extracted_Content);}
-  if (extracted_Content) {
-    if (is_Debug_Mode) {console.log("extracted_Content.length:", extracted_Content.length);}
-  } else {
-    extracted_Content = [];//{};
-    if (is_Debug_Mode) {console.log("extracted_Content is empty:", extracted_Content);}
-  }
   //*** defaults end ***//
 
   //*** initialization ***//
   if (is_Debug_Mode) {console.log("initialization:");}
   //if (is_Debug_Mode) {console.log("parser_State:", parser_State);}
-  if (parser_State) { // is not null | undefined & is an proper object
+  if (
+    parser_State &&
+    parser_State.open_Tag
+  ) { // is not null | undefined & is a proper object
     //>>> set <<<//
-    context_Start = parser_State.context_Start;
-    context = parser_State.context;
-    context_End = parser_State.context_End;
-    thumbnail_Start = parser_State.thumbnail_Start;
-    thumbnail = parser_State.thumbnail;
-    thumbnail_End = parser_State.thumbnail_End;
-    snippet_Start = parser_State.snippet_Start;
-    snippet = parser_State.snippet;
-    snippet_Tag = parser_State.snippet_Tag;
+    open_Tag = parser_State.open_Tag;
+    content_Headers = parser_State.content_Headers;
+    headers_End = parser_State.headers_End;
+    extracted_Content = parser_State.extracted_Content;
+    if (
+      extracted_Content &&
+      typeof(extracted_Content) == 'object' &&
+      extracted_Content.hasOwnProperty("length")
+    ) {
+      if (is_Debug_Mode) {console.log("extracted_Content.length:", extracted_Content.length);}
+    } else {
+      extracted_Content = Buffer.from('', 'utf8');
+      if (is_Debug_Mode) {console.log("extracted_Content is empty:", extracted_Content);}
+    }
+    close_Tag = parser_State.close_Tag;
   } else {
   }
-  if (is_Debug_Mode) {console.log("context:", context);}
-  if (is_Debug_Mode) {console.log("thumbnail:", thumbnail);}
-  if (is_Debug_Mode) {console.log("snippet:", snippet);}
+  if (is_Debug_Mode) {console.log("content_Headers:", content_Headers);}
   //*** initialization end ***//
 
   for (;i < chunk_Length;i++) {
@@ -198,177 +204,76 @@ function parse_Stream(
     current_Char = data_Chunk[i];
 
     if (
-      context_Start == "" ||
-      context_Start.length < 7 ||
-      context_Start != "/url?q="
+      open_Tag === "" ||
+      open_Tag.length < open_Tag_Length ||
+      open_Tag != OPEN_TAG
       ) {
-      context_Start = (context_Start + current_Char).slice(-7);
-      if (false) {
-        console.log(
-          "add to context_Start:", context_Start,
-          ".length:", context_Start.length);}
-      if (false && context_Start == "/url?q=") {
-        process.stdout.write("\rcontext.length: ");
-      }
-    }
-    if (
-      (context_Start == "/url?q=") &&
-      (context == "" ||
-      //context.length < 15 ||
-      //context != 'class="rg_meta"'
-      context_End != '&amp;')
-      ) {
-      context += current_Char;
-      //console.log("\r");console.log("\b\r12");console.log("\b\r345");
-      if (false) {
-        //console.log("\r");
-        //console.log(
-        //  "\b\r", context.length);}//, "add to context.length");}//, context);}
-        //process.stdout.write("\rcontext.length: " + context.length);}
-        process.stdout.write(context.length + ", ");}
-    }
-    if (
-      context_Start == "/url?q=" &&
-      (context_End == "" ||
-      context_End.length < 5 ||
-      context_End != '&amp;')
-      ) {
-      context_End = (context_End + current_Char).slice(-5);
-      if (false) {
-        console.log(
-          "add to context_End:", context_End,
-          ".length:", context_End.length);}
+      open_Tag += current_Char;
       //>>> post check <<<//
-      if (current_Char == ';' && context_End == '&amp;') {
-        // drop fist char from the same iteration as / when context_Start complete
-        context = context.slice(1, -5);
-        if (is_Debug_Mode) { console.log("\ncontext extracted:", context);}
-      }
-    }
-
-    if (
-      context_End == "&amp;" &&
-      (thumbnail_Start == "" ||
-      thumbnail_Start.length < 5 ||
-      thumbnail_Start != 'src="')
-      ) {
-      thumbnail_Start = (thumbnail_Start + current_Char).slice(-5);
-      //>>> guard / margin / delimiter / skip char flag <<<//
-      if (thumbnail_Start == 'src="') {
-        if (is_Debug_Mode) { console.log("thumbnail_Start completed:", thumbnail_Start);}
+      if (current_Char == '\n' && open_Tag == OPEN_TAG) {
+        //>>> guard / margin / delimiter / skip char flag <<<//
+        if (is_Debug_Mode) { console.log("open_Tag completed:", open_Tag);}
         current_Char = undefined;
       }
     }
     if (
       current_Char &&
-      thumbnail_Start == 'src="' &&
-      thumbnail_End != '"'
+      open_Tag == OPEN_TAG &&
+      headers_End != CRLF
     ) {
-
-      if (current_Char == '"' && thumbnail != "") {
-        thumbnail_End = current_Char;//'"';
-        if (is_Debug_Mode) { console.log("thumbnail extracted:", thumbnail);}
-      } else {
-        thumbnail += current_Char;
-      }
-    }
-
-    if (
-      thumbnail_End == '"' &&
-      snippet_Start < 2
-      //(snippet_Start == 0 ||
-      //snippet_Start.length < 4 ||
-      //snippet_Start != 2)
+      content_Headers += current_Char;
+      headers_End = content_Headers.slice(-2);
+      //>>> post check <<<//
+      if (
+        current_Char == '\n' &&
+        content_Headers !== "" &&
+        //content_Headers.slice(-2) == CRLF
+        headers_End == CRLF
       ) {
-      snippet_Tag = (snippet_Tag + current_Char).slice(-4);
-      //>>> guard / margin / delimiter / skip char flag <<<//
-      if (snippet_Tag == '<br>') {
-        if (is_Debug_Mode) { console.log("snippet_Tag completed:", snippet_Tag);}
-        snippet_Start += 1;
-        //>>> reset <<<//
-        snippet_Tag = "";
+        //headers_End = CRLF;
+        //content_Headers = content_Headers.slice(0, -2);
+        if (is_Debug_Mode) { console.log("content_Headers extracted:", content_Headers);}
+      } else {
+        // to prevent further chunk processing
         current_Char = undefined;
-
-        if (snippet_Start == 2) {
-          if (is_Debug_Mode) { console.log("snippet_Start completed:", snippet_Start);}
-        }
       }
     }
     if (
       current_Char &&
-      snippet_Start == 2 &&
-      snippet_Tag != '<br>'
-      //snippet_End != '<br>'
+      headers_End == CRLF &&
+      (close_Tag.length < close_Tag_Length ||
+      close_Tag != CLOSE_TAG)
     ) {
-
-      if (current_Char == '<') {
-        // possible tag start
-        // TODO handle case <snippet_Start><not br tag>
-        snippet_Tag = current_Char;//'"';
-      } else if (current_Char == '>' && snippet_Tag != "") {
-        // possible tag end
-        snippet_Tag += current_Char;
-        if (is_Debug_Mode) { console.log("snippet_Tag completed:", snippet_Tag);}
-        //>>> post check <<<//
-        if (snippet_Tag == '<br>') {
-          //snippet = context.slice(1, -4);
-          if (is_Debug_Mode) { console.log("snippet extracted:", snippet);}
-        }
-      } else if (
-        snippet_Tag == "" ||
-        (snippet_Tag.slice(-1) == '>' &&
-        snippet_Tag != "<br>")
+      close_Tag = (close_Tag + current_Char).slice(-close_Tag_Length);
+      //>>> post check <<<//
+      if (
+        current_Char == '-' &&
+        //extracted_Content.length > 0 &&
+        close_Tag == CLOSE_TAG
       ) {
-        snippet += current_Char;
+        if (is_Debug_Mode) { console.log("extracted_Content extracted:");}
+        if (is_Debug_Mode) { console.log("extracted_Content.length:", extracted_Content.length);}
       } else {
-        snippet_Tag += current_Char;
+        char_Buffer = Buffer.from(current_Char, 'utf8');
+        extracted_Content = Buffer
+          .concat(
+            [extracted_Content, char_Buffer]
+            ,extracted_Content.length + char_Buffer.length);
       }
-    }
-
-    if (snippet_Tag == '<br>') {
-
-      extracted_Content
-        .push(
-          {"context": context
-          ,"thumbnail": thumbnail
-          ,"snippet": snippet
-          }
-        )
-      ;
-      if (is_Debug_Mode) {console.log("push to extracted_Content.length:", extracted_Content.length);}
-      //>>> reset <<<//
-      context_Start = "";
-      context = "";
-      context_End = "";
-      thumbnail_Start = "";
-      thumbnail = "";
-      thumbnail_End = "";
-      snippet_Start = 0;//"";
-      snippet = "";
-      snippet_Tag = "";
-
-    } else {
     }
   }
   //>>> result <<<//
   if (is_Debug_Mode) {console.log("return value:");}
-  if (is_Debug_Mode) {console.log("context:", context);}
-  if (is_Debug_Mode) {console.log("thumbnail:", thumbnail);}
-  if (is_Debug_Mode) {console.log("snippet:", snippet);}
   //return Promise
   //  .resolve(
   return {
-        "extracted_Content": extracted_Content
-        ,"parser_State": {
-          "context_Start": context_Start
-          ,"context": context
-          ,"context_End": context_End
-          ,"thumbnail_Start": thumbnail_Start
-          ,"thumbnail": thumbnail
-          ,"thumbnail_End": thumbnail_End
-          ,"snippet_Start": snippet_Start
-          ,"snippet": snippet
-          ,"snippet_Tag": snippet_Tag
+        //"extracted_Content": extracted_Content
+        "parser_State": {
+          "open_Tag": open_Tag
+          ,"content_Headers": content_Headers
+          ,"headers_End": headers_End
+          ,"extracted_Content": extracted_Content
+          ,"close_Tag": headers_End
         }
       }
   //  )
