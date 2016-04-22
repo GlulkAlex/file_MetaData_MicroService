@@ -135,8 +135,9 @@ function parse_Stream(
   "use strict";
 
   const CRLF = '\r\n';
-  const OPEN_TAG = boundary + CRLF;
-  const CLOSE_TAG = boundary + '--';
+  const HEADERS_END = CRLF + CRLF;
+  const OPEN_TAG = '--' + boundary + CRLF;
+  const CLOSE_TAG = '--' + boundary + '--';
   var result_Obj = {
     // states: empty -> (undefined | "") | partial -> "--" | complete -> "-- ... \r\n"
     "open_Tag": boundary + CRLF//------WebKitFormBoundaryRlQf1oHVfylrtnOJ\r\n
@@ -151,6 +152,7 @@ function parse_Stream(
   var chunk_Length = data_Chunk.length;
   var boundary_Length = boundary.length;
   var open_Tag_Length = OPEN_TAG.length;
+  var headers_End_Length = HEADERS_END.length;
   var close_Tag_Length = CLOSE_TAG.length;
   var current_Char = "";
   //>>> parser's state <<<///
@@ -158,17 +160,21 @@ function parse_Stream(
   var content_Headers = "";
   var headers_End = "";
   // ? Buffer ?
+  // For octet streams in the context of TCP streams & file system operations
   // Buffer.concat([buf1, buf2, buf3], totalLength == buf1.length + buf2.length + buf3.length);
   // Buffer.from('this is a tést');
   // Buffer.from('7468697320697320612074c3a97374', 'hex');
   // new Buffer('7468697320697320612074c3a97374', 'hex');
   // TODO how to get / set file content encoding ?
-  var extracted_Content = Buffer.from('', 'utf8');
+  //var extracted_Content = Buffer.from('', 'utf8');
+  var extracted_Content = '';
   var char_Buffer = Buffer.from('', 'utf8');
   var close_Tag = "";
 
   //*** defaults ***//
   if (is_Debug_Mode) {console.log("defaults:");}
+  if (is_Debug_Mode) {console.log("OPEN_TAG:", OPEN_TAG);}
+  if (is_Debug_Mode) {console.log("CLOSE_TAG:", CLOSE_TAG);}
   //*** defaults end ***//
 
   //*** initialization ***//
@@ -178,6 +184,12 @@ function parse_Stream(
     parser_State &&
     parser_State.open_Tag
   ) { // is not null | undefined & is a proper object
+    //>>> ? guard ? <<<///
+    /*if (close_Tag == CLOSE_TAG) {
+
+
+      return parser_State;
+    }*/
     //>>> set <<<//
     open_Tag = parser_State.open_Tag;
     content_Headers = parser_State.content_Headers;
@@ -190,7 +202,8 @@ function parse_Stream(
     ) {
       if (is_Debug_Mode) {console.log("extracted_Content.length:", extracted_Content.length);}
     } else {
-      extracted_Content = Buffer.from('', 'utf8');
+      //extracted_Content = Buffer.from('', 'utf8');
+      extracted_Content = '';
       if (is_Debug_Mode) {console.log("extracted_Content is empty:", extracted_Content);}
     }
     close_Tag = parser_State.close_Tag;
@@ -208,7 +221,8 @@ function parse_Stream(
       open_Tag.length < open_Tag_Length ||
       open_Tag != OPEN_TAG
       ) {
-      open_Tag += current_Char;
+      //>>> slide window
+      open_Tag = (open_Tag + current_Char).slice(-open_Tag_Length);
       //>>> post check <<<//
       if (current_Char == '\n' && open_Tag == OPEN_TAG) {
         //>>> guard / margin / delimiter / skip char flag <<<//
@@ -219,16 +233,17 @@ function parse_Stream(
     if (
       current_Char &&
       open_Tag == OPEN_TAG &&
-      headers_End != CRLF
+      headers_End != HEADERS_END
     ) {
       content_Headers += current_Char;
-      headers_End = content_Headers.slice(-2);
+      //>>> slide window
+      headers_End = content_Headers.slice(-headers_End_Length);
       //>>> post check <<<//
       if (
         current_Char == '\n' &&
         content_Headers !== "" &&
         //content_Headers.slice(-2) == CRLF
-        headers_End == CRLF
+        headers_End == HEADERS_END
       ) {
         //headers_End = CRLF;
         //content_Headers = content_Headers.slice(0, -2);
@@ -240,10 +255,11 @@ function parse_Stream(
     }
     if (
       current_Char &&
-      headers_End == CRLF &&
+      headers_End == HEADERS_END &&
       (close_Tag.length < close_Tag_Length ||
       close_Tag != CLOSE_TAG)
     ) {
+      //>>> slide window
       close_Tag = (close_Tag + current_Char).slice(-close_Tag_Length);
       //>>> post check <<<//
       if (
@@ -254,11 +270,14 @@ function parse_Stream(
         if (is_Debug_Mode) { console.log("extracted_Content extracted:");}
         if (is_Debug_Mode) { console.log("extracted_Content.length:", extracted_Content.length);}
       } else {
-        char_Buffer = Buffer.from(current_Char, 'utf8');
-        extracted_Content = Buffer
+        //TypeError('"value" argument must not be a number')
+        char_Buffer = Buffer.from(String(current_Char), 'utf8');
+        //char_Buffer = Buffer.from([current_Char], 'utf8');
+        extracted_Content += current_Char;
+        /*extracted_Content = Buffer
           .concat(
             [extracted_Content, char_Buffer]
-            ,extracted_Content.length + char_Buffer.length);
+            ,extracted_Content.length + char_Buffer.length);*/
       }
     }
   }
@@ -268,13 +287,13 @@ function parse_Stream(
   //  .resolve(
   return {
         //"extracted_Content": extracted_Content
-        "parser_State": {
+        //"parser_State": {
           "open_Tag": open_Tag
           ,"content_Headers": content_Headers
           ,"headers_End": headers_End
           ,"extracted_Content": extracted_Content
           ,"close_Tag": headers_End
-        }
+        //}
       }
   //  )
   ;

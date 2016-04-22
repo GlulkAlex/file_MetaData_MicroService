@@ -337,16 +337,23 @@ var test_2_0 = function(description){
       //,"------WebKitFormBoundary9BQiwV6pV5buxxDr--"
     ];//.join('\r\n');
     //var boundaryKey = Math.random().toString(16);
-    var boundary_Key = request_PayLoad[0];//"file_Content_Boundary";
+    var boundary_Key = request_PayLoad[0].slice(2);//"file_Content_Boundary";
     var parse_Stream_Results = {};
+    var extracted_Content;
 
     //>>> initializing <<<//
     console.log("initializing ...");
     parse_Stream_Results = parse_Stream(request_Headers, null, boundary_Key, is_Debug_Mode);
     parse_Stream_Results = parse_Stream(request_PayLoad.join('\r\n')
       , parse_Stream_Results
-      , boundary_Key, is_Debug_Mode);
+      , boundary_Key
+      , is_Debug_Mode);
     console.log("initial parse_Stream_Results:", parse_Stream_Results);
+    //extracted_Content = parse_Stream_Results.extracted_Content;
+    //console.log("open_Tag:", parse_Stream_Results.open_Tag);
+    //console.log("typeof open_Tag:", typeof(parse_Stream_Results.open_Tag));
+    //console.log("typeof extracted_Content:", typeof(extracted_Content));
+    //console.log("extracted_Content.length:", extracted_Content.length);
     //>>> initializing end <<<//
     /*
     By default
@@ -371,11 +378,16 @@ var test_2_0 = function(description){
         .on('end'
           , () => {
             console.log("file read stream ending ...");
-            parse_Stream_Results = parse_Stream('\r\n--' + boundary_Key + '--'
+            console.log("parse_Stream_Results.extracted_Content.length:", parse_Stream_Results.extracted_Content.length);
+            // last data chunk
+            parse_Stream_Results = parse_Stream(
+              //'\r\n--' + boundary_Key + '--'
+              '--' + boundary_Key + '--'
               ,parse_Stream_Results
               ,boundary_Key
               ,is_Debug_Mode);
             console.log("final parse_Stream_Results:", parse_Stream_Results);
+            console.log("parse_Stream_Results.extracted_Content.length:", parse_Stream_Results.extracted_Content.length);
           })
       ;
     }())
