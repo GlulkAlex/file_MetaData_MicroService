@@ -173,19 +173,21 @@ function parse_Stream(
   // new Buffer('7468697320697320612074c3a97374', 'hex');
   // TODO how to get / set file content encoding ?
   //> attempt to create Buffer.empty(<any>)
-  var file_Buffer = Buffer.from('', 'utf8');
+  //buf = Buffer.from([]);//> buf.length -> 0
+  var file_Buffer;// = Buffer.from('', 'utf8');//> buf.length -> 0
   var extracted_Content = '';
   var char_Buffer = Buffer.from('', 'utf8');
   var close_Tag = "";
+  var file_Length = 0;
 
   //*** defaults ***//
-  if (is_Debug_Mode) {console.log("defaults:");}
+  //if (is_Debug_Mode) {console.log("defaults:");}
   //if (is_Debug_Mode) {console.log("OPEN_TAG:", OPEN_TAG);}
   //if (is_Debug_Mode) {console.log("CLOSE_TAG:", CLOSE_TAG);}
   //*** defaults end ***//
 
   //*** initialization ***//
-  if (is_Debug_Mode) {console.log("initialization:");}
+  if (is_Debug_Mode) {console.log("new parse step initialization ...");}
   //if (is_Debug_Mode) {console.log("parser_State:", parser_State);}
   if (
     parser_State &&
@@ -201,6 +203,8 @@ function parse_Stream(
     open_Tag = parser_State.open_Tag;
     content_Headers = parser_State.content_Headers;
     headers_End = parser_State.headers_End;
+    file_Buffer = parser_State.file_Buffer;
+    /*
     extracted_Content = parser_State.extracted_Content;
     if (
       extracted_Content &&
@@ -213,11 +217,16 @@ function parse_Stream(
       //extracted_Content = Buffer.from('', 'utf8');
       extracted_Content = '';
     }
-    if (parser_State.file_Buffer) {file_Buffer = parser_State.file_Buffer;}
+    */
+    //if (parser_State.file_Buffer) {file_Buffer = parser_State.file_Buffer;}
     close_Tag = parser_State.close_Tag;
+    file_Length = parser_State.file_Length;
   } else {
   }
+  if (is_Debug_Mode) {console.log("open_Tag:", open_Tag);}
   if (is_Debug_Mode) {console.log("content_Headers:", content_Headers);}
+  if (is_Debug_Mode) {console.log("headers_End:", headers_End);}
+  if (is_Debug_Mode) {console.log("file_Length:", file_Length);}
   //*** initialization end ***//
 
   //buf.toString([encoding[, start[, end]]])
@@ -234,6 +243,7 @@ function parse_Stream(
     }
   }*/
 
+  if (is_Debug_Mode) { console.log("data_Chunk:\n", data_Chunk);}
   //buf.values()
   //for (var value of buf.values()) {
   // or just
@@ -241,6 +251,9 @@ function parse_Stream(
   for (;i < chunk_Length;i++) {
 
     current_Char = data_Chunk[i];
+    if (current_Char == '\r') {
+      if (is_Debug_Mode) { console.log("'Carriage Return' detected:", data_Chunk.slice(i + 1 - 5 > 0 ? i+1-5 : 0, i+1));}
+    }
 
     if (
       open_Tag === "" ||
@@ -272,7 +285,7 @@ function parse_Stream(
         headers_End == HEADERS_END
       ) {
         //headers_End = CRLF;
-        //content_Headers = content_Headers.slice(0, -2);
+        content_Headers = content_Headers.slice(0, -headers_End_Length);
         if (is_Debug_Mode) { console.log("content_Headers extracted:", content_Headers);}
         // to prevent further chunk processing
         current_Char = undefined;
@@ -288,14 +301,17 @@ function parse_Stream(
 
       //> StringDecoder decodes a buffer to a string
       //char_Buffer = current_Char;
+      //TypeError('"value" argument must not be a number')
+      //char_Buffer = Buffer.from(current_Char, 'utf8');
       char_Buffer = Buffer.from([current_Char], 'utf8');
       //RangeError: toString() radix argument must be between 2 and 36
       //current_Char = current_Char.toString(2);
       //current_Char = current_Char.toString(8);
-      current_Char = current_Char.toString(16);
+      //current_Char = current_Char.toString(16);
       //RangeError: Invalid code point NaN
       //current_Char = String.fromCodePoint(current_Char);
       //>>> slide window
+      //> implicit type conversion: buff => str via '+' (str concat operator)
       close_Tag = (close_Tag + current_Char).slice(-close_Tag_Length);
       //>>> post check <<<//
       if (
@@ -306,11 +322,12 @@ function parse_Stream(
       ) {
         if (is_Debug_Mode) { console.log("extracted_Content extracted:");}
         //if (is_Debug_Mode) { console.log("close_Tag:", close_Tag, "== CLOSE_TAG:", CLOSE_TAG);}
-        extracted_Content = extracted_Content.slice(0, -close_Tag_Length);
-        if (is_Debug_Mode) { console.log("extracted_Content.length:", extracted_Content.length);}
+        //extracted_Content = extracted_Content.slice(0, -close_Tag_Length);
+        //if (is_Debug_Mode) { console.log("extracted_Content.length:", extracted_Content.length);}
         if (is_Debug_Mode) { console.log("file_Buffer.length:", file_Buffer.length);}
         if (is_Debug_Mode) { console.log("file_Buffer:", file_Buffer);}
-        if (is_Debug_Mode) { console.log("file_Buffer.toString():", file_Buffer.toString());}
+        ///>>>*** !!! WARN !!! may be too big for (to use) standard output ***<<<///
+        //if (is_Debug_Mode) { console.log("file_Buffer.toString():", file_Buffer.toString());}
         //Buffer.byteLength(string[, encoding])
         if (is_Debug_Mode) { console.log("Buffer.byteLength(of utf8 str):", Buffer.byteLength(file_Buffer.toString(), 'utf8'));}
         if (is_Debug_Mode) { console.log("Buffer.byteLength(of utf8 buf):", Buffer.byteLength(file_Buffer, 'utf8'));}
@@ -327,16 +344,26 @@ function parse_Stream(
         //char_Buffer = Buffer.from(String(current_Char), 'utf8');
         //char_Buffer = Buffer.from([current_Char], 'utf8');
         //char_Buffer = Buffer(char_Buffer);
-        extracted_Content += current_Char;
-        file_Buffer = Buffer
-          .concat(
-            [file_Buffer, char_Buffer]
-            ,file_Buffer.length + char_Buffer.length);
+        //extracted_Content += current_Char;
+        if (file_Buffer) {
+          file_Buffer = Buffer
+            .concat(
+              [file_Buffer, char_Buffer]
+              ,file_Buffer.length + char_Buffer.length);
+        } else {
+          file_Buffer = char_Buffer;
+        }
+
+        if (file_Length) {
+          file_Length += char_Buffer.length;
+        } else {
+          file_Length = char_Buffer.length;
+        }
       }
     }
   }
   //>>> result <<<//
-  if (is_Debug_Mode) {console.log("return value:");}
+  //if (is_Debug_Mode) {console.log("parse step return value:");}
   //return Promise
   //  .resolve(
   return {
@@ -348,6 +375,7 @@ function parse_Stream(
           ,"extracted_Content": extracted_Content
           ,"file_Buffer": file_Buffer
           ,"close_Tag": close_Tag
+          ,"file_Length": file_Length
         //}
       }
   //  )

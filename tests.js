@@ -117,6 +117,7 @@ var test_1_0 = function(description){
     };
 
     //>>> initializing <<<//
+    console.log("test initialization ...");
     if (
       //url.slice(0, 5) == 'https'
       url_Obj.protocol == 'https:'
@@ -126,8 +127,8 @@ var test_1_0 = function(description){
     } else {//if (url.slice(0, 5) == 'http')
       client = require('http');
     }
-    console.log("POST options:", options);
-    console.log("url_Obj:", url_Obj);
+    console.log("POST options:\n", options);
+    console.log("url_Obj:\n", url_Obj);
     //>>> initializing end <<<//
     /*
     By default
@@ -189,6 +190,7 @@ var test_1_0 = function(description){
                     result.file_Size = data.length;
                   }
                   if (result.file_Size) {
+                    assert.equal(result.file_Size, actual_File_Size);
                     assert.equal(result.file_Size, expected_Result);
                   }
                   if (result.error) {
@@ -253,6 +255,7 @@ var test_1_0 = function(description){
         "mode": 0o666,
         "autoClose": true
       };
+      var actual_File_Size = 0;// <- accumulator
       fs
         // fs.read(fd, buffer, offset, length, position, callback)
         .createReadStream(file_Name
@@ -263,11 +266,14 @@ var test_1_0 = function(description){
         .on('open', () => {console.log("fs.createReadStream open event");})
         .on('data'
           ,(chunk) => {
-            console.log('read %d bytes of data', chunk.length);})
+            console.log('read %d bytes of data', chunk.length);
+            actual_File_Size += chunk.length;
+          })
         .on('error', (err) => {console.log("fs.createReadStream error:", err.stack);})
         .on('end'
           , () => {
             console.log("ending POST request ...");
+            console.log("actual_File_Size:", actual_File_Size);
             // mark the end of the only part
             // request.end() puts the `boundary` on a new line.
             request.end('\r\n--' + boundary_Key + '--');
@@ -284,6 +290,7 @@ var test_1_0 = function(description){
 //("http://localhost:8080/upload/single_File", "package.json", 675)
 //("http://localhost:8080/upload/single_File", "/home/gluk-alex/Documents/fg_manual/Fantasy General - Manual.pdf", 4308305)
 //("http://localhost:8080/upload/single_File", "/home/gluk-alex/.local/share/Steam/steamapps/common/Xenonauts/QuickstartGuide.pdf", 848467)
+("http://localhost:8080/upload/custom_Parser", "package.json", 675)
 //("http://localhost:8080/upload/custom_Parser", "/home/gluk-alex/Pictures/1st_stage_landing.jpg", 43562)
 //("http://localhost:8080/upload/single_File", "/home/gluk-alex/Pictures/1st_stage_landing.jpg", 43562)
 //> against: wc -c <"main.js" or: find "main.js" -printf "%s" or: stat --printf="%s" main.js
@@ -340,11 +347,11 @@ var test_2_0 = function(description){
     var boundary_Key = request_PayLoad[0].slice(2);//"file_Content_Boundary";
     var parse_Stream_Results = {};
     var extracted_Content;
-    var file_Content_Str = "";
+    //var file_Content_Str = "";
     var file_Content_Length = 0;
 
     //>>> initializing <<<//
-    console.log("initializing ...");
+    console.log("initializing POST request headers ...");
     //console.log("request_Headers + request_PayLoad:\n", request_Headers + request_PayLoad.join('\r\n'));
     //console.log("last 7 characters before actual file content:\n", request_PayLoad.join('\r\n').slice(-7).split(""));
     parse_Stream_Results = parse_Stream(request_Headers, null, boundary_Key, is_Debug_Mode);
@@ -352,7 +359,7 @@ var test_2_0 = function(description){
       , parse_Stream_Results
       , boundary_Key
       , is_Debug_Mode);
-    console.log("initial parse_Stream_Results:", parse_Stream_Results);
+    console.log("initial parse_Stream_Results:\n", parse_Stream_Results);
     //extracted_Content = parse_Stream_Results.extracted_Content;
     //console.log("open_Tag:", parse_Stream_Results.open_Tag);
     //console.log("typeof open_Tag:", typeof(parse_Stream_Results.open_Tag));
@@ -376,19 +383,21 @@ var test_2_0 = function(description){
         .on('data'
           ,(chunk) => {
             console.log('read %d bytes of data', chunk.length);
-            console.log('typeof(chunk):', typeof(chunk));
-            console.log('chunk instanceof Buffer:', (chunk instanceof Buffer));
+            //console.log('typeof(chunk):', typeof(chunk));
+            //console.log('chunk instanceof Buffer:', (chunk instanceof Buffer));
             parse_Stream_Results = parse_Stream(chunk, parse_Stream_Results, boundary_Key, is_Debug_Mode);
-            file_Content_Str += chunk;
+            //file_Content_Str += chunk;
             file_Content_Length += chunk.length;
           })
         .on('error', (err) => {console.log("fs.createReadStream error:", err.stack);})
         .on('end'
           , () => {
             console.log("file read stream ending ...");
-            console.log("file_Content_Str:\n", file_Content_Str);
-            console.log("file_Content_Str.length:", file_Content_Str.length, file_Content_Length);
-            console.log("parse_Stream_Results.extracted_Content.length:", parse_Stream_Results.extracted_Content.length);
+            ///>>>*** !!! WARN !!! may be too big for (to use) standard output ***<<<///
+            //console.log("file_Content_Str:\n", file_Content_Str);
+            //console.log("file_Content_Str.length:", file_Content_Str.length, file_Content_Length);
+            console.log("file_Content_Length:", file_Content_Length);
+            //console.log("parse_Stream_Results.extracted_Content.length:", parse_Stream_Results.extracted_Content.length);
             // last data chunk
             parse_Stream_Results = parse_Stream(
               //'\r\n--' + boundary_Key + '--'
@@ -397,7 +406,8 @@ var test_2_0 = function(description){
               ,boundary_Key
               ,is_Debug_Mode);
             console.log("final parse_Stream_Results:", parse_Stream_Results);
-            console.log("parse_Stream_Results.extracted_Content.length:", parse_Stream_Results.extracted_Content.length);
+            //console.log("parse_Stream_Results.extracted_Content.length:", parse_Stream_Results.extracted_Content.length);
+            assert.equal(parse_Stream_Results.file_Buffer.length, expected_Result);
           })
       ;
     }())
@@ -406,7 +416,7 @@ var test_2_0 = function(description){
 }("test 2.0: must return correct / expected 'file_Size' from stream as response")
 //()
 //("package.json", 675)
-("http://localhost:8080/upload/single_File", "package.json", 675)
+//("http://localhost:8080/upload/single_File", "package.json", 675)
 ;
 /*** tests end ***/
 

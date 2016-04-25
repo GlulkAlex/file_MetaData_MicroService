@@ -130,6 +130,7 @@ var parser = upload_In_Mem.fields([{ "name": 'upload_File', "maxCount": 1 }]);
 
 //*** application modules ***//
 //const html_Parser = require('./html_Parser.js');
+const parse_Stream = require('./stream_Parser.js').parse_Stream;
 //*** application modules end ***//
 
 //*** Global vars ***//
@@ -317,9 +318,24 @@ app
     ,(req
     ,res
     ,next) => {
+      ///>>> data accumulator <<<///
+      //> for big data it must be Buffer or Array
+      //var extracted_Content;
       var content_Str = "";
+      //req.get("boundary");// | req.header("boundary")
+      // from
+      //{ 'content-type': 'multipart/form-data; boundary="file_Content_Boundary"', ... }
+      var boundary_Key = req.get("content-type").split(';')[1];// -> "file_Content_Boundary";
+      var parse_Stream_Results;// = {};
+      var file_Content_Length = 0;
 
       if (is_Debug_Mode) {console.log(`.route(${req.route.path}) uploading file ...`);}
+      if (is_Debug_Mode) {console.log(".route('/upload/custom_Parser').post(req.headers)", req.headers);}
+      /*if (boundary_Key) {} else {
+        boundary_Key = req.headers.boundary;//req.headers["boundary"];
+      }*/
+      //boundary_Key: undefined
+      if (is_Debug_Mode) {console.log("boundary_Key:", boundary_Key);}
       //message.socket
       //socket.connect(options[, connectListener])
       req.socket
@@ -348,10 +364,24 @@ app
         //.socket
         .on("data"
           ,(chunk) => {
+            //> started from:
+            /*
+             --file_Content_Boundary
+            Content-Disposition: form-data; name="upload_File"; filename="package.json"
+
+
+
+            */
+            //> TODO why started from ' ' & ended with 3 new line ?
+            //> TODO does this chunk.includes("\r\n") ?
             if (is_Debug_Mode) {console.log("req.socket \"data\" event");}
-            if (is_Debug_Mode) {console.log("data chunk:", chunk);}
+            //if (is_Debug_Mode) {console.log("data chunk:", chunk);}
             if (is_Debug_Mode) {console.log("chunk.length:", chunk.length);}
-            content_Str += chunk;
+            //content_Str += chunk;
+            parse_Stream_Results = parse_Stream(chunk, parse_Stream_Results, boundary_Key, is_Debug_Mode);
+            if (is_Debug_Mode) {console.log("parse_Stream_Results:\n", parse_Stream_Results);}
+            //file_Content_Str += chunk;
+            file_Content_Length += parse_Stream_Results.file_Length;
           }
         )
       ;
@@ -378,6 +408,7 @@ app
         .once("end"
           //,(data) => {
           ,() => {
+            var json_Obj = {};
             //req.once("end",(data) undefined
             //if (is_Debug_Mode) {console.log("req.once(\"end\",(data)", data);}
             /*
@@ -393,7 +424,10 @@ app
             //req.body undefined
             //if (is_Debug_Mode) {console.log("req.body", req.body);}
             //res.json(req.files);
-            res.json(content_Str);
+            //res.json(content_Str);
+            json_Obj = {"file_Size": file_Content_Length};
+            res.json(json_Obj);
+            res.end();
         })
       ;
       //console.log(req.body);
