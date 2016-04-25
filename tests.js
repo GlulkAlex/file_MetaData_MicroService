@@ -345,6 +345,8 @@ var test_2_0 = function(description){
 
     //>>> initializing <<<//
     console.log("initializing ...");
+    //console.log("request_Headers + request_PayLoad:\n", request_Headers + request_PayLoad.join('\r\n'));
+    //console.log("last 7 characters before actual file content:\n", request_PayLoad.join('\r\n').slice(-7).split(""));
     parse_Stream_Results = parse_Stream(request_Headers, null, boundary_Key, is_Debug_Mode);
     parse_Stream_Results = parse_Stream(request_PayLoad.join('\r\n')
       , parse_Stream_Results

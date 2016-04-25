@@ -138,13 +138,19 @@ function parse_Stream(
   const HEADERS_END = CRLF + CRLF;
   const OPEN_TAG = '--' + boundary + CRLF;
   const CLOSE_TAG = '--' + boundary + '--';
+  const ENCODINGS = ['ascii', 'utf8', 'utf16le', 'base64', 'binary', 'hex'];
   var result_Obj = {
     // states: empty -> (undefined | "") | partial -> "--" | complete -> "-- ... \r\n"
+    //> 'ascii' - for 7-bit ASCII data
     "open_Tag": '--' + boundary + CRLF//------WebKitFormBoundaryRlQf1oHVfylrtnOJ\r\n
+    //> 'ascii' - for 7-bit ASCII data
     ,"content_Headers": "Content-Disposition: form-data; ..."
+    //> 'ascii' - for 7-bit ASCII data
     ,"headers_End": 2 * CRLF// <- 2-nd CRLF
     // chars after 'CRLF' and before "close_Tag"
+    //> encoding method ? 'ascii' ? 'utf8' ? 'utf16le' ? 'base64' ? 'binary' ? 'hex' ?
     ,"extracted_Content": " ... "//  <- may be incomplete
+    //> 'ascii' - for 7-bit ASCII data
     ,"close_Tag": '--' + boundary + "--"// <- may never being completed
   };
   var str_Item_Index = 0;
@@ -166,7 +172,8 @@ function parse_Stream(
   // Buffer.from('7468697320697320612074c3a97374', 'hex');
   // new Buffer('7468697320697320612074c3a97374', 'hex');
   // TODO how to get / set file content encoding ?
-  //var extracted_Content = Buffer.from('', 'utf8');
+  //> attempt to create Buffer.empty(<any>)
+  var file_Buffer = Buffer.from('', 'utf8');
   var extracted_Content = '';
   var char_Buffer = Buffer.from('', 'utf8');
   var close_Tag = "";
@@ -206,12 +213,31 @@ function parse_Stream(
       //extracted_Content = Buffer.from('', 'utf8');
       extracted_Content = '';
     }
+    if (parser_State.file_Buffer) {file_Buffer = parser_State.file_Buffer;}
     close_Tag = parser_State.close_Tag;
   } else {
   }
   if (is_Debug_Mode) {console.log("content_Headers:", content_Headers);}
   //*** initialization end ***//
 
+  //buf.toString([encoding[, start[, end]]])
+  //Buffer.isEncoding(encoding)
+  //> it works, but how this is helpful / how to use that info ?
+  /*if (data_Chunk instanceof Buffer) {
+    for (let value of ENCODINGS) {
+      if (
+        //data_Chunk
+        Buffer.isEncoding(value)
+      ) {
+        console.log("data_Chunk encoding:", value);
+      }
+    }
+  }*/
+
+  //buf.values()
+  //for (var value of buf.values()) {
+  // or just
+  //for (var value of buf) {
   for (;i < chunk_Length;i++) {
 
     current_Char = data_Chunk[i];
@@ -248,9 +274,9 @@ function parse_Stream(
         //headers_End = CRLF;
         //content_Headers = content_Headers.slice(0, -2);
         if (is_Debug_Mode) { console.log("content_Headers extracted:", content_Headers);}
-      } else {
         // to prevent further chunk processing
         current_Char = undefined;
+      } else {
       }
     }
     if (
@@ -259,29 +285,53 @@ function parse_Stream(
       (close_Tag.length < close_Tag_Length ||
       close_Tag != CLOSE_TAG)
     ) {
+
       //> StringDecoder decodes a buffer to a string
-      current_Char = current_Char.toString();
+      //char_Buffer = current_Char;
+      char_Buffer = Buffer.from([current_Char], 'utf8');
+      //RangeError: toString() radix argument must be between 2 and 36
+      //current_Char = current_Char.toString(2);
+      //current_Char = current_Char.toString(8);
+      current_Char = current_Char.toString(16);
+      //RangeError: Invalid code point NaN
+      //current_Char = String.fromCodePoint(current_Char);
       //>>> slide window
       close_Tag = (close_Tag + current_Char).slice(-close_Tag_Length);
       //>>> post check <<<//
       if (
         current_Char == '-' &&
         //extracted_Content.length > 0 &&
+        //"abc".endsWith("bc") -> true
         close_Tag == CLOSE_TAG
       ) {
         if (is_Debug_Mode) { console.log("extracted_Content extracted:");}
         //if (is_Debug_Mode) { console.log("close_Tag:", close_Tag, "== CLOSE_TAG:", CLOSE_TAG);}
         extracted_Content = extracted_Content.slice(0, -close_Tag_Length);
         if (is_Debug_Mode) { console.log("extracted_Content.length:", extracted_Content.length);}
+        if (is_Debug_Mode) { console.log("file_Buffer.length:", file_Buffer.length);}
+        if (is_Debug_Mode) { console.log("file_Buffer:", file_Buffer);}
+        if (is_Debug_Mode) { console.log("file_Buffer.toString():", file_Buffer.toString());}
+        //Buffer.byteLength(string[, encoding])
+        if (is_Debug_Mode) { console.log("Buffer.byteLength(of utf8 str):", Buffer.byteLength(file_Buffer.toString(), 'utf8'));}
+        if (is_Debug_Mode) { console.log("Buffer.byteLength(of utf8 buf):", Buffer.byteLength(file_Buffer, 'utf8'));}
+        if (is_Debug_Mode) { console.log("Buffer.byteLength(of hex str):", Buffer.byteLength(file_Buffer.toString(), 'hex'));}
+        if (is_Debug_Mode) { console.log("Buffer.byteLength(of hex buf):", Buffer.byteLength(file_Buffer, 'hex'));}
+        if (is_Debug_Mode) { console.log("Buffer.byteLength(of ascii str):", Buffer.byteLength(file_Buffer.toString(), 'ascii'));}
+        if (is_Debug_Mode) { console.log("Buffer.byteLength(of ascii buf):", Buffer.byteLength(file_Buffer, 'ascii'));}
+        if (is_Debug_Mode) { console.log("Buffer.byteLength(of base64 str):", Buffer.byteLength(file_Buffer.toString(), 'base64'));}
+        if (is_Debug_Mode) { console.log("Buffer.byteLength(of base64 buf):", Buffer.byteLength(file_Buffer, 'base64'));}
+        if (is_Debug_Mode) { console.log("Buffer.byteLength(of binary str):", Buffer.byteLength(file_Buffer.toString(), 'binary'));}
+        if (is_Debug_Mode) { console.log("Buffer.byteLength(of binary buf):", Buffer.byteLength(file_Buffer, 'binary'));}
       } else {
         //TypeError('"value" argument must not be a number')
         //char_Buffer = Buffer.from(String(current_Char), 'utf8');
         //char_Buffer = Buffer.from([current_Char], 'utf8');
+        //char_Buffer = Buffer(char_Buffer);
         extracted_Content += current_Char;
-        /*extracted_Content = Buffer
+        file_Buffer = Buffer
           .concat(
-            [extracted_Content, char_Buffer]
-            ,extracted_Content.length + char_Buffer.length);*/
+            [file_Buffer, char_Buffer]
+            ,file_Buffer.length + char_Buffer.length);
       }
     }
   }
@@ -296,6 +346,7 @@ function parse_Stream(
           ,"content_Headers": content_Headers
           ,"headers_End": headers_End
           ,"extracted_Content": extracted_Content
+          ,"file_Buffer": file_Buffer
           ,"close_Tag": close_Tag
         //}
       }
