@@ -140,12 +140,12 @@ function parse_Stream(
   const CLOSE_TAG = '--' + boundary + '--';
   var result_Obj = {
     // states: empty -> (undefined | "") | partial -> "--" | complete -> "-- ... \r\n"
-    "open_Tag": boundary + CRLF//------WebKitFormBoundaryRlQf1oHVfylrtnOJ\r\n
+    "open_Tag": '--' + boundary + CRLF//------WebKitFormBoundaryRlQf1oHVfylrtnOJ\r\n
     ,"content_Headers": "Content-Disposition: form-data; ..."
-    ,"headers_End": CRLF// <- 2-nd CRLF
+    ,"headers_End": 2 * CRLF// <- 2-nd CRLF
     // chars after 'CRLF' and before "close_Tag"
     ,"extracted_Content": " ... "//  <- may be incomplete
-    ,"close_Tag": boundary + "--"// <- may never being completed
+    ,"close_Tag": '--' + boundary + "--"// <- may never being completed
   };
   var str_Item_Index = 0;
   var i = 0;
@@ -173,8 +173,8 @@ function parse_Stream(
 
   //*** defaults ***//
   if (is_Debug_Mode) {console.log("defaults:");}
-  if (is_Debug_Mode) {console.log("OPEN_TAG:", OPEN_TAG);}
-  if (is_Debug_Mode) {console.log("CLOSE_TAG:", CLOSE_TAG);}
+  //if (is_Debug_Mode) {console.log("OPEN_TAG:", OPEN_TAG);}
+  //if (is_Debug_Mode) {console.log("CLOSE_TAG:", CLOSE_TAG);}
   //*** defaults end ***//
 
   //*** initialization ***//
@@ -197,14 +197,14 @@ function parse_Stream(
     extracted_Content = parser_State.extracted_Content;
     if (
       extracted_Content &&
-      typeof(extracted_Content) == 'object' &&
+      //typeof(extracted_Content) == 'object' &&
       extracted_Content.hasOwnProperty("length")
     ) {
       if (is_Debug_Mode) {console.log("extracted_Content.length:", extracted_Content.length);}
     } else {
+      if (is_Debug_Mode) {console.log("extracted_Content was / is empty:", extracted_Content);}
       //extracted_Content = Buffer.from('', 'utf8');
       extracted_Content = '';
-      if (is_Debug_Mode) {console.log("extracted_Content is empty:", extracted_Content);}
     }
     close_Tag = parser_State.close_Tag;
   } else {
@@ -259,6 +259,8 @@ function parse_Stream(
       (close_Tag.length < close_Tag_Length ||
       close_Tag != CLOSE_TAG)
     ) {
+      //> StringDecoder decodes a buffer to a string
+      current_Char = current_Char.toString();
       //>>> slide window
       close_Tag = (close_Tag + current_Char).slice(-close_Tag_Length);
       //>>> post check <<<//
@@ -268,10 +270,12 @@ function parse_Stream(
         close_Tag == CLOSE_TAG
       ) {
         if (is_Debug_Mode) { console.log("extracted_Content extracted:");}
+        //if (is_Debug_Mode) { console.log("close_Tag:", close_Tag, "== CLOSE_TAG:", CLOSE_TAG);}
+        extracted_Content = extracted_Content.slice(0, -close_Tag_Length);
         if (is_Debug_Mode) { console.log("extracted_Content.length:", extracted_Content.length);}
       } else {
         //TypeError('"value" argument must not be a number')
-        char_Buffer = Buffer.from(String(current_Char), 'utf8');
+        //char_Buffer = Buffer.from(String(current_Char), 'utf8');
         //char_Buffer = Buffer.from([current_Char], 'utf8');
         extracted_Content += current_Char;
         /*extracted_Content = Buffer
@@ -292,7 +296,7 @@ function parse_Stream(
           ,"content_Headers": content_Headers
           ,"headers_End": headers_End
           ,"extracted_Content": extracted_Content
-          ,"close_Tag": headers_End
+          ,"close_Tag": close_Tag
         //}
       }
   //  )

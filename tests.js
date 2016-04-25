@@ -340,6 +340,8 @@ var test_2_0 = function(description){
     var boundary_Key = request_PayLoad[0].slice(2);//"file_Content_Boundary";
     var parse_Stream_Results = {};
     var extracted_Content;
+    var file_Content_Str = "";
+    var file_Content_Length = 0;
 
     //>>> initializing <<<//
     console.log("initializing ...");
@@ -372,12 +374,18 @@ var test_2_0 = function(description){
         .on('data'
           ,(chunk) => {
             console.log('read %d bytes of data', chunk.length);
+            console.log('typeof(chunk):', typeof(chunk));
+            console.log('chunk instanceof Buffer:', (chunk instanceof Buffer));
             parse_Stream_Results = parse_Stream(chunk, parse_Stream_Results, boundary_Key, is_Debug_Mode);
+            file_Content_Str += chunk;
+            file_Content_Length += chunk.length;
           })
         .on('error', (err) => {console.log("fs.createReadStream error:", err.stack);})
         .on('end'
           , () => {
             console.log("file read stream ending ...");
+            console.log("file_Content_Str:\n", file_Content_Str);
+            console.log("file_Content_Str.length:", file_Content_Str.length, file_Content_Length);
             console.log("parse_Stream_Results.extracted_Content.length:", parse_Stream_Results.extracted_Content.length);
             // last data chunk
             parse_Stream_Results = parse_Stream(
